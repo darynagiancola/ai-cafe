@@ -5,9 +5,11 @@ import { CartProvider } from './context/CartContext'
 import './index.css'
 import App from './App.tsx'
 
+const routerBase = import.meta.env.BASE_URL.replace(/\/$/, '') || '/'
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={routerBase}>
       <CartProvider>
         <App />
       </CartProvider>
