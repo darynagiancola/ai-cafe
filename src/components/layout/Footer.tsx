@@ -1,10 +1,11 @@
-import { Instagram, Facebook, Music2 } from 'lucide-react'
+import { Globe, MessageCircle, Music2 } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { businessService } from '../../services/businessService'
 
-const socialIconByLabel: Record<string, JSX.Element> = {
-  Instagram: <Instagram className="h-4 w-4" aria-hidden />,
-  Facebook: <Facebook className="h-4 w-4" aria-hidden />,
+const socialIconByLabel: Record<string, ReactNode> = {
+  Instagram: <Globe className="h-4 w-4" aria-hidden />,
+  Facebook: <MessageCircle className="h-4 w-4" aria-hidden />,
   TikTok: <Music2 className="h-4 w-4" aria-hidden />,
 }
 
