@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 import {
+  type AssistantConversationMessage,
   confirmProposedItemsForCart,
   getAiBaristaStarterMessage,
   sendMessageToAiBarista,
@@ -26,6 +27,13 @@ export function AIBaristaModal({ open, onClose }: AIBaristaModalProps) {
     return null
   }
 
+  function toConversation(history: AssistantMessage[]): AssistantConversationMessage[] {
+    return history.map((message) => ({
+      role: message.role,
+      content: message.content,
+    }))
+  }
+
   async function handleSend(customInput?: string) {
     const trimmed = (customInput ?? input).trim()
     if (!trimmed) {
@@ -45,7 +53,8 @@ export function AIBaristaModal({ open, onClose }: AIBaristaModalProps) {
     setLoading(true)
 
     try {
-      const reply = await sendMessageToAiBarista(trimmed)
+      const updatedConversation = toConversation([...messages, userMessage])
+      const reply = await sendMessageToAiBarista(trimmed, updatedConversation)
       setMessages((current) => [...current, reply])
     } catch {
       setError('Unable to process this request right now. Please try again.')
@@ -54,8 +63,10 @@ export function AIBaristaModal({ open, onClose }: AIBaristaModalProps) {
     }
   }
 
-  function handleConfirmAddToCart() {
-    const action = confirmProposedItemsForCart()
+  function handleConfirmAddToCart(
+    confirmedItems?: { productId: string; quantity: number }[],
+  ) {
+    const action = confirmProposedItemsForCart(confirmedItems)
     if (!action) {
       return
     }
@@ -157,7 +168,7 @@ export function AIBaristaModal({ open, onClose }: AIBaristaModalProps) {
               {message.role === 'assistant' && message.payload?.confirmAddToCart && (
                 <button
                   type="button"
-                  onClick={handleConfirmAddToCart}
+                  onClick={() => handleConfirmAddToCart(message.payload?.confirmAddToCart?.items)}
                   className="focus-ring mt-3 inline-flex rounded-full bg-[#7f4630] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6c3c2a]"
                 >
                   {message.payload.confirmAddToCart.label}

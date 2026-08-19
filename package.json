@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@langchain/core": "^1.2.8",
+    "@langchain/openai": "^1.5.8",
     "clsx": "^2.1.1",
+    "langchain": "^1.5.9",
     "lucide-react": "^1.32.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
