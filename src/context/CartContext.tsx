@@ -7,9 +7,17 @@ import {
   useState,
 } from 'react'
 import { useLocalStorage } from '../hooks/useLocalStorage'
+import { menuService } from '../services/menuService'
 import { validatePromoCode } from '../services/promoService'
 import type { CartDetailedItem, CartItem, CartTotals } from '../types/cart'
 import { getCartTotals, getDetailedCartItems } from '../utils/cartCalculations'
+
+export interface CartAddFeedback {
+  eventId: number
+  productId: string
+  productName: string
+  quantity: number
+}
 
 interface CartContextValue {
   items: CartItem[]
@@ -17,6 +25,7 @@ interface CartContextValue {
   totals: CartTotals
   promoCode: string | null
   promoMessage: string | null
+  lastAddedItem: CartAddFeedback | null
   addToCart: (productId: string, quantity?: number) => void
   removeFromCart: (productId: string) => void
   increaseQty: (productId: string) => void
@@ -35,19 +44,30 @@ export function CartProvider({ children }: PropsWithChildren) {
   const [items, setItems] = useLocalStorage<CartItem[]>(CART_STORAGE_KEY, [])
   const [promoCode, setPromoCode] = useLocalStorage<string | null>(PROMO_STORAGE_KEY, null)
   const [promoMessage, setPromoMessage] = useState<string | null>(null)
+  const [lastAddedItem, setLastAddedItem] = useState<CartAddFeedback | null>(null)
 
   const addToCart = useCallback((productId: string, quantity = 1) => {
+    const safeQuantity = Math.max(1, quantity)
+
     setItems((current) => {
       const existing = current.find((item) => item.productId === productId)
       if (existing) {
         return current.map((item) =>
           item.productId === productId
-            ? { ...item, quantity: item.quantity + Math.max(1, quantity) }
+            ? { ...item, quantity: item.quantity + safeQuantity }
             : item,
         )
       }
 
-      return [...current, { productId, quantity: Math.max(1, quantity) }]
+      return [...current, { productId, quantity: safeQuantity }]
+    })
+
+    const productName = menuService.getProductById(productId)?.name ?? 'Product'
+    setLastAddedItem({
+      eventId: Date.now(),
+      productId,
+      productName,
+      quantity: safeQuantity,
     })
   }, [])
 
@@ -106,6 +126,7 @@ export function CartProvider({ children }: PropsWithChildren) {
       totals,
       promoCode,
       promoMessage,
+      lastAddedItem,
       addToCart,
       removeFromCart,
       increaseQty,
@@ -120,6 +141,7 @@ export function CartProvider({ children }: PropsWithChildren) {
       totals,
       promoCode,
       promoMessage,
+      lastAddedItem,
       addToCart,
       removeFromCart,
       increaseQty,

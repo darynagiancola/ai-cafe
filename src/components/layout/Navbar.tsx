@@ -1,5 +1,5 @@
 import { Menu, ShoppingBag, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 import { businessService } from '../../services/businessService'
@@ -20,8 +20,24 @@ const navClassName = ({ isActive }: { isActive: boolean }) =>
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const { totals } = useCart()
+  const [cartPulseActive, setCartPulseActive] = useState(false)
+  const { totals, lastAddedItem } = useCart()
   const businessInfo = businessService.getBusinessInfo()
+
+  useEffect(() => {
+    if (!lastAddedItem) {
+      return
+    }
+
+    setCartPulseActive(true)
+    const timeoutId = window.setTimeout(() => {
+      setCartPulseActive(false)
+    }, 420)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [lastAddedItem?.eventId])
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#e5d6c7] bg-[#f7f0e7]/90 backdrop-blur-md">
@@ -43,13 +59,19 @@ export function Navbar() {
 
         <div className="hidden items-center gap-3 lg:flex">
           <Link
-            className="focus-ring relative rounded-full border border-[#ddcebf] bg-[#fff9f2] p-2.5 text-[#2a2320] transition hover:-translate-y-0.5 hover:bg-[#f5ebde]"
+            className={`focus-ring relative rounded-full border border-[#ddcebf] bg-[#fff9f2] p-2.5 text-[#2a2320] transition hover:-translate-y-0.5 hover:bg-[#f5ebde] ${
+              cartPulseActive ? 'scale-105' : 'scale-100'
+            }`}
             to="/cart"
             aria-label="Open cart"
           >
             <ShoppingBag aria-hidden className="h-5 w-5" />
             {totals.itemCount > 0 && (
-              <span className="absolute -right-1 -top-1 rounded-full bg-[#7f4630] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              <span
+                className={`absolute -right-1 -top-1 rounded-full bg-[#7f4630] px-1.5 py-0.5 text-[10px] font-semibold text-white transition-transform duration-300 ${
+                  cartPulseActive ? 'scale-125' : 'scale-100'
+                }`}
+              >
                 {totals.itemCount}
               </span>
             )}

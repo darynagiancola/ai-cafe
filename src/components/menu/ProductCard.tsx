@@ -2,6 +2,7 @@ import { Leaf } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { MenuProduct } from '../../types/menu'
 import { formatUAH } from '../../utils/currency'
+import { AddToCartButton } from '../cart/AddToCartButton'
 import { SmartImage } from '../ui/SmartImage'
 
 interface ProductCardProps {
@@ -37,26 +38,20 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
         <div className="mt-auto space-y-3">
           {product.badges && product.badges.length > 0 && (
             <div className="flex flex-wrap gap-2">
-            {product.badges.map((badge) => (
-              <span
-                key={badge}
-                className="inline-flex items-center gap-1 rounded-full border border-[#dfd0c2] bg-[#faf2e9] px-2.5 py-1 text-xs font-medium text-[#634e42]"
-              >
-                {badge === 'Vegan' && <Leaf className="h-3 w-3" aria-hidden />}
-                {badge}
-              </span>
-            ))}
+              {product.badges.map((badge) => (
+                <span
+                  key={badge}
+                  className="inline-flex items-center gap-1 rounded-full border border-[#dfd0c2] bg-[#faf2e9] px-2.5 py-1 text-xs font-medium text-[#634e42]"
+                >
+                  {badge === 'Vegan' && <Leaf className="h-3 w-3" aria-hidden />}
+                  {badge}
+                </span>
+              ))}
             </div>
           )}
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onAddToCart(product.id)}
-              className="btn-primary w-full"
-            >
-              Add to cart
-            </button>
+            <AddToCartButton onAdd={() => onAddToCart(product.id)} className="w-full" />
             <Link className="btn-secondary px-4" to={`/menu/${product.slug}`}>
               Details
             </Link>

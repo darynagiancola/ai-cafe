@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { CartSummary } from '../components/cart/CartSummary'
 import { useCart } from '../context/CartContext'
@@ -28,12 +28,19 @@ const initialForm: CheckoutFormState = {
 }
 
 export function CheckoutPage() {
-  const { detailedItems, totals, promoCode, clearCart } = useCart()
+  const { detailedItems, totals, promoCode, promoMessage, applyPromoCode, clearPromoCode, clearCart } = useCart()
   const [orderType, setOrderType] = useState<OrderType>('pickup')
   const [form, setForm] = useState<CheckoutFormState>(initialForm)
+  const [promoInput, setPromoInput] = useState(promoCode ?? '')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null)
+  const deliveryFee = orderType === 'delivery' ? 60 : 0
+  const finalTotal = totals.total + deliveryFee
+
+  useEffect(() => {
+    setPromoInput(promoCode ?? '')
+  }, [promoCode])
 
   if (detailedItems.length === 0 && !completedOrder) {
     return (
@@ -73,7 +80,7 @@ export function CheckoutPage() {
       items: detailedItems,
       subtotal: totals.subtotal,
       discount: totals.discount,
-      total: totals.total,
+      total: finalTotal,
       promoCode,
       orderType,
       deliveryAddress:
@@ -89,7 +96,7 @@ export function CheckoutPage() {
     try {
       const paymentResult = await initiateWayForPayPayment({
         orderId: draftOrder.id,
-        amount: draftOrder.total,
+        amount: finalTotal,
         currency: 'UAH',
         description: `Order ${draftOrder.id} at AURELIA Café`,
       })
@@ -266,10 +273,51 @@ export function CheckoutPage() {
         </div>
 
         <div className="space-y-4">
+          <div className="card-surface bg-[#fffaf4] p-5">
+            <h2 className="text-lg font-semibold text-[#2a2320]">Promo code</h2>
+            <p className="mt-1 text-sm text-[#695f58]">Use the same promo as in cart. Try WELCOME10.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <input
+                type="text"
+                value={promoInput}
+                onChange={(event) => setPromoInput(event.target.value)}
+                placeholder="Enter promo code"
+                className="focus-ring min-w-[160px] flex-1 rounded-2xl border border-[#dccfc3] px-4 py-2.5 text-sm"
+              />
+              <button type="button" onClick={() => applyPromoCode(promoInput)} className="btn-primary">
+                Apply
+              </button>
+              {promoCode && (
+                <button type="button" onClick={clearPromoCode} className="btn-secondary">
+                  Remove
+                </button>
+              )}
+            </div>
+            {promoMessage && (
+              <p
+                className={`mt-3 text-sm ${
+                  promoMessage.toLowerCase().includes('applied')
+                    ? 'text-[#466246]'
+                    : 'text-[#8e2d1e]'
+                }`}
+                role="status"
+              >
+                {promoMessage}
+              </p>
+            )}
+            {!promoMessage && promoCode && (
+              <p className="mt-3 text-sm text-[#466246]" role="status">
+                {promoCode} is currently applied.
+              </p>
+            )}
+          </div>
+
           <CartSummary
             subtotal={totals.subtotal}
             discount={totals.discount}
-            total={totals.total}
+            total={finalTotal}
+            promoCode={promoCode}
+            deliveryFee={deliveryFee}
             ctaLabel={undefined}
             ctaTo={undefined}
           />

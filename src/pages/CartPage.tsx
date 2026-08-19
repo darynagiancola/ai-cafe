@@ -104,7 +104,12 @@ export function CartPage() {
           </div>
         </div>
 
-        <CartSummary subtotal={totals.subtotal} discount={totals.discount} total={totals.total} />
+        <CartSummary
+          subtotal={totals.subtotal}
+          discount={totals.discount}
+          total={totals.total}
+          promoCode={promoCode}
+        />
       </div>
     </section>
   )
