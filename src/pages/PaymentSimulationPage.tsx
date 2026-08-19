@@ -134,7 +134,7 @@ export function PaymentSimulationPage() {
   }
 
   return (
-    <section className="container-shell py-10 sm:py-14">
+    <section className="container-shell py-10 pb-24 sm:py-14 sm:pb-16">
       <h1 className="display-serif text-5xl leading-[0.95] text-[#2a2320]">
         Simulated payment
       </h1>
@@ -142,8 +142,8 @@ export function PaymentSimulationPage() {
         Demo-only WayForPay-inspired flow. No real payment data is collected.
       </p>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-5">
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="order-1 min-w-0 space-y-5">
           <div className="card-surface bg-[#fffaf4] p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-[#2a2320]">
               Order #{order.orderReference}
@@ -151,7 +151,7 @@ export function PaymentSimulationPage() {
             <p className="mt-2 text-sm text-[#6c615a]">
               Merchant account: {order.merchantAccount}
             </p>
-            <p className="mt-1 text-sm text-[#6c615a]">
+            <p className="mt-1 break-all text-sm text-[#6c615a]">
               Mock signature: {order.merchantSignature}
             </p>
             <p className="mt-1 text-sm text-[#6c615a]">
@@ -195,7 +195,7 @@ export function PaymentSimulationPage() {
           </div>
         </div>
 
-        <aside className="card-surface bg-[#fffaf4] p-5 sm:p-6">
+        <aside className="card-surface order-2 min-w-0 bg-[#fffaf4] p-5 sm:p-6">
           <h2 className="display-serif text-3xl font-semibold text-[#2a2320]">Payment status</h2>
           <p
             className={`mt-3 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(order.paymentStatus)}`}
@@ -222,7 +222,7 @@ export function PaymentSimulationPage() {
             </p>
           )}
 
-          <div className="mt-5 space-y-2">
+          <div className="mt-5 space-y-3">
             <button
               type="button"
               disabled={!canProcessPayment || processing}
@@ -248,11 +248,11 @@ export function PaymentSimulationPage() {
             </div>
           )}
 
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Link to="/checkout" className="btn-secondary">
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Link to="/checkout" className="btn-secondary w-full justify-center sm:w-auto">
               Back to checkout
             </Link>
-            <Link to="/menu" className="btn-secondary">
+            <Link to="/menu" className="btn-secondary w-full justify-center sm:w-auto">
               Back to menu
             </Link>
           </div>

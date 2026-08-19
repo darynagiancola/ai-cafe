@@ -288,8 +288,8 @@ export function CheckoutPage() {
             total={finalTotal}
             promoCode={promoCode}
             deliveryFee={deliveryFee}
-            ctaLabel={undefined}
-            ctaTo={undefined}
+            ctaLabel=""
+            ctaTo=""
           />
           <button
             type="submit"
