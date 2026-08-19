@@ -4,17 +4,27 @@ import { createAgent } from 'langchain'
 import { z } from 'zod'
 import { DEFAULT_SUGGESTED_PROMPTS } from '../prompts/aiBaristaPrompt.js'
 import type { AgentMessagePayload, AgentProposedOrder, MenuItemSummary } from '../types.js'
-import { calculateCart, getProductDetails, validatePromoCode } from '../tools/index.js'
+import {
+  calculateCart,
+  getMenu,
+  getProductDetails,
+  searchMenu,
+  validatePromoCode,
+} from '../tools/index.js'
 import { formatUAH } from '../../utils/currency.js'
 
 export const llmOutputSchema = z.object({
   message: z.string().min(1),
   turnType: z.enum([
-    'ORDER_MUTATION',
+    'RECOMMENDATION_SEARCH',
+    'ORDER_CREATE',
+    'ORDER_ADD',
+    'ORDER_REMOVE',
+    'ORDER_REPLACE',
+    'ORDER_QUANTITY_CHANGE',
     'ORDER_QUERY',
     'PROMO_QUERY',
     'PRODUCT_INFO',
-    'RECOMMENDATION',
     'BUSINESS_INFO',
     'GENERAL_CONVERSATION',
   ]),
@@ -61,6 +71,284 @@ export interface RunOpenAiBaristaTurnParams {
 export type TurnType = z.infer<typeof llmOutputSchema>['turnType']
 
 const FORBIDDEN_CURRENCY_PATTERN = /\$|usd|dollars?|cents?|eur|€/i
+const ORDER_TURN_TYPES: TurnType[] = [
+  'ORDER_CREATE',
+  'ORDER_ADD',
+  'ORDER_REMOVE',
+  'ORDER_REPLACE',
+  'ORDER_QUANTITY_CHANGE',
+  'ORDER_QUERY',
+]
+
+export interface RecommendationOption {
+  itemNames: string[]
+  total: number
+}
+
+export interface RecommendationSearchResult {
+  message: string
+  recommendations: MenuItemSummary[]
+  options: RecommendationOption[]
+}
+
+function normalizeForIntent(input: string): string {
+  return input.toLowerCase().trim()
+}
+
+function extractBudgetLimit(input: string): number | null {
+  const explicitBudget = input.match(
+    /(?:under|below|up to|<=?|within|до)\s*([0-9]{2,5})\s*(?:₴|uah|грн)?/i,
+  )
+  if (explicitBudget) {
+    return Number(explicitBudget[1])
+  }
+
+  const amountWithCurrency = input.match(/([0-9]{2,5})\s*(?:₴|uah|грн)/i)
+  return amountWithCurrency ? Number(amountWithCurrency[1]) : null
+}
+
+function includesAny(input: string, patterns: RegExp[]): boolean {
+  return patterns.some((pattern) => pattern.test(input))
+}
+
+export function classifyTurnTypeFromMessage(input: string): TurnType {
+  const normalized = normalizeForIntent(input)
+  const budgetLimit = extractBudgetLimit(normalized)
+  const recommendationPhrases = includesAny(normalized, [
+    /\brecommend\b/,
+    /what can i (?:have|get|try)/,
+    /\bcheaper option\b/,
+    /\bsomething sweet\b/,
+    /\bwhich .* recommend\b/,
+  ])
+  const recommendationWithConstraint =
+    includesAny(normalized, [/\bvegan\b/, /\bbreakfast\b/, /\bdessert\b/]) &&
+    includesAny(normalized, [/\bunder\b/, /\bbelow\b/, /\bwithin\b/, /\bfor\b/])
+
+  if (recommendationPhrases || budgetLimit !== null || recommendationWithConstraint) {
+    return 'RECOMMENDATION_SEARCH'
+  }
+
+  if (
+    includesAny(normalized, [
+      /\bstart over\b/,
+      /\bnew order\b/,
+      /\bclear(?: my)? order\b/,
+      /\breset\b/,
+    ])
+  ) {
+    return 'ORDER_REPLACE'
+  }
+
+  if (
+    includesAny(normalized, [
+      /\bwhat(?:'s| is) my (?:total|order)\b/,
+      /\bshow (?:my )?(?:order|total)\b/,
+      /\btotal now\b/,
+    ])
+  ) {
+    return 'ORDER_QUERY'
+  }
+
+  if (
+    includesAny(normalized, [
+      /\bpromo\b/,
+      /\bdiscount\b/,
+      /\boffer\b/,
+      /\bcoupon\b/,
+      /\bwelcome10\b/,
+    ])
+  ) {
+    return 'PROMO_QUERY'
+  }
+
+  if (
+    includesAny(normalized, [
+      /\ballergen\b/,
+      /\bingredient\b/,
+      /\bcontains?\b/,
+      /what(?:'s| is) in\b/,
+    ])
+  ) {
+    return 'PRODUCT_INFO'
+  }
+
+  if (
+    includesAny(normalized, [
+      /\btime do you close\b/,
+      /\bhours?\b/,
+      /\bopen\b/,
+      /\baddress\b/,
+      /\bcontact\b/,
+      /\bpay by card\b/,
+      /\bpayment\b/,
+    ])
+  ) {
+    return 'BUSINESS_INFO'
+  }
+
+  if (includesAny(normalized, [/\breplace\b/, /\bswap\b/])) {
+    return 'ORDER_REPLACE'
+  }
+
+  if (includesAny(normalized, [/\bremove\b/, /\bdelete\b/, /\bwithout\b/])) {
+    return 'ORDER_REMOVE'
+  }
+
+  if (
+    includesAny(normalized, [
+      /\bmake that\b/,
+      /\bchange (?:it )?to\b/,
+      /\bincrease\b/,
+      /\bdecrease\b/,
+    ])
+  ) {
+    return 'ORDER_QUANTITY_CHANGE'
+  }
+
+  if (includesAny(normalized, [/\badd\b/, /\balso\b/, /\binclude\b/])) {
+    return 'ORDER_ADD'
+  }
+
+  if (includesAny(normalized, [/\bi want\b/, /\bcan i have\b/, /\bi'?ll take\b/, /\border\b/])) {
+    return 'ORDER_CREATE'
+  }
+
+  return 'GENERAL_CONVERSATION'
+}
+
+function resolveEffectiveTurnType({
+  userMessageTurnType,
+  modelTurnType,
+}: {
+  userMessageTurnType: TurnType
+  modelTurnType: TurnType
+}): TurnType {
+  if (userMessageTurnType === 'GENERAL_CONVERSATION') {
+    return modelTurnType
+  }
+
+  if (
+    userMessageTurnType === 'RECOMMENDATION_SEARCH' ||
+    userMessageTurnType === 'ORDER_QUERY' ||
+    userMessageTurnType === 'PROMO_QUERY' ||
+    userMessageTurnType === 'PRODUCT_INFO' ||
+    userMessageTurnType === 'BUSINESS_INFO'
+  ) {
+    return userMessageTurnType
+  }
+
+  if (ORDER_TURN_TYPES.includes(userMessageTurnType)) {
+    return userMessageTurnType
+  }
+
+  return modelTurnType
+}
+
+function isVeganItem(item: MenuItemSummary): boolean {
+  return item.dietaryTags.some((tag) => tag.toLowerCase() === 'vegan')
+}
+
+function buildCoffeeSweetOptions({
+  budgetLimit,
+  veganOnly,
+}: {
+  budgetLimit: number | null
+  veganOnly: boolean
+}): RecommendationOption[] {
+  const coffees = getMenu({ category: 'Coffee', onlyAvailable: true }).items.filter((item) =>
+    veganOnly ? isVeganItem(item) : true,
+  )
+  const sweets = getMenu({ category: 'Desserts', onlyAvailable: true }).items.filter((item) =>
+    veganOnly ? isVeganItem(item) : true,
+  )
+
+  const options: RecommendationOption[] = []
+  for (const coffee of coffees) {
+    for (const sweet of sweets) {
+      const calculated = calculateCart({
+        items: [
+          { product: coffee.id, quantity: 1 },
+          { product: sweet.id, quantity: 1 },
+        ],
+      })
+      const total = calculated.subtotal
+      if (budgetLimit !== null && total > budgetLimit) {
+        continue
+      }
+      options.push({ itemNames: [coffee.name, sweet.name], total })
+    }
+  }
+
+  return options.sort((a, b) => a.total - b.total).slice(0, 3)
+}
+
+function buildSingleItemOptions(
+  items: MenuItemSummary[],
+  budgetLimit: number | null,
+): RecommendationOption[] {
+  return items
+    .filter((item) => (budgetLimit !== null ? item.price <= budgetLimit : true))
+    .map((item) => ({ itemNames: [item.name], total: item.price }))
+    .sort((a, b) => a.total - b.total)
+    .slice(0, 4)
+}
+
+export function buildRecommendationSearchResponse(
+  input: string,
+): RecommendationSearchResult {
+  const normalized = normalizeForIntent(input)
+  const budgetLimit = extractBudgetLimit(normalized)
+  const veganOnly = /\bvegan\b/.test(normalized)
+  const wantsCoffee = /\bcoffee|cappuccino|espresso|latte|flat white|cold brew\b/.test(
+    normalized,
+  )
+  const wantsSweet =
+    /\bsweet|dessert|cake|roll|croissant|cheesecake|pastry|cinnamon\b/.test(
+      normalized,
+    )
+  const wantsBreakfast = /\bbreakfast|brunch|toast|eggs|pancake\b/.test(normalized)
+
+  const recommendations = searchMenu({
+    query: input,
+    maxBudget: budgetLimit ?? undefined,
+    dietaryPreferences: veganOnly ? ['vegan'] : undefined,
+  }).items
+
+  let options: RecommendationOption[] = []
+  if (wantsCoffee && wantsSweet) {
+    options = buildCoffeeSweetOptions({ budgetLimit, veganOnly })
+  } else if (wantsBreakfast) {
+    const breakfastItems = getMenu({
+      category: 'Breakfast',
+      onlyAvailable: true,
+    }).items.filter((item) => (veganOnly ? isVeganItem(item) : true))
+    options = buildSingleItemOptions(breakfastItems, budgetLimit)
+  } else {
+    options = buildSingleItemOptions(recommendations, budgetLimit)
+  }
+
+  if (options.length === 0) {
+    const budgetLabel = budgetLimit !== null ? ` under ${formatUAH(budgetLimit)}` : ''
+    return {
+      message: `I couldn't find an available option${budgetLabel} that matches those preferences. Try a slightly higher budget or different constraints.`,
+      recommendations: recommendations.slice(0, 4),
+      options,
+    }
+  }
+
+  const optionsText = options
+    .map((option) => `${option.itemNames.join(' + ')} — ${formatUAH(option.total)}`)
+    .join('; ')
+  const budgetPrefix =
+    budgetLimit !== null ? `Under ${formatUAH(budgetLimit)}, ` : ''
+
+  return {
+    message: `${budgetPrefix}you could have: ${optionsText}. Tell me which option to add to your order.`,
+    recommendations: recommendations.slice(0, 6),
+    options,
+  }
+}
 
 function buildSessionStateSummary(state: BaristaSessionState): string {
   if (state.proposedItems.length === 0) {
@@ -157,7 +445,6 @@ function buildDeterministicOrderMessage(
     turnType === 'ORDER_QUERY'
       ? `Your current order is ${formatOrderItemsForMessage(order.items)}.`
       : `Great choice. I’ve prepared ${formatOrderItemsForMessage(order.items)} for you.`
-
   const lines: string[] = [introLine]
 
   if (order.promoCode && order.discount > 0) {
@@ -165,7 +452,6 @@ function buildDeterministicOrderMessage(
       `Subtotal: ${formatUAH(order.subtotal)}. Discount (${order.promoCode}): −${formatUAH(order.discount)}.`,
     )
   }
-
   lines.push(`Total: ${formatUAH(order.total)}.`)
 
   if (askToAddToCart) {
@@ -284,7 +570,11 @@ function fallbackMessageForTurnType({
   askToAddToCart: boolean
 }): string {
   switch (turnType) {
-    case 'ORDER_MUTATION':
+    case 'ORDER_CREATE':
+    case 'ORDER_ADD':
+    case 'ORDER_REMOVE':
+    case 'ORDER_REPLACE':
+    case 'ORDER_QUANTITY_CHANGE':
     case 'ORDER_QUERY':
       if (proposedOrder) {
         return buildDeterministicOrderMessage(proposedOrder, turnType, askToAddToCart)
@@ -292,7 +582,7 @@ function fallbackMessageForTurnType({
       return 'You do not have a proposed order yet. Tell me what you want, and I can prepare one.'
     case 'PROMO_QUERY':
       return buildPromoMessage({ proposedOrder, promoChanged, promoCode })
-    case 'RECOMMENDATION':
+    case 'RECOMMENDATION_SEARCH':
       return buildDeterministicRecommendationMessage(recommendations)
     default:
       return 'All menu prices are listed in Ukrainian hryvnia (₴).'
@@ -321,7 +611,6 @@ export function enforceUahMessage({
   askToAddToCart: boolean
 }): string {
   const shouldRestateOrder = shouldRestateOrderMessage({ turnType, orderChanged })
-
   if (proposedOrder && shouldRestateOrder) {
     return buildDeterministicOrderMessage(proposedOrder, turnType, askToAddToCart)
   }
@@ -374,6 +663,7 @@ export async function runOpenAiBaristaTurn({
 }: RunOpenAiBaristaTurnParams): Promise<BaristaBackendResponse> {
   const previousItems = sessionState.proposedItems.map((item) => ({ ...item }))
   const previousPromoCode = sessionState.promoCode
+  const userMessageTurnType = classifyTurnTypeFromMessage(message)
 
   if (isRestrictedPaidStatusRequest(message)) {
     return {
@@ -381,6 +671,23 @@ export async function runOpenAiBaristaTurn({
       message:
         'I cannot mark orders as paid. Payment status must be confirmed by the payment/backend system.',
       sessionState,
+    }
+  }
+
+  if (userMessageTurnType === 'RECOMMENDATION_SEARCH') {
+    const recommendationResult = buildRecommendationSearchResponse(message)
+    return {
+      mode: 'llm',
+      message: recommendationResult.message,
+      sessionState,
+      payload: {
+        recommendations: recommendationResult.recommendations,
+        suggestedPrompts: [
+          'Add the first option',
+          'Show another option under 400 ₴',
+          'What is currently in my order?',
+        ],
+      },
     }
   }
 
@@ -399,11 +706,15 @@ You are a tool-calling assistant. Always rely on tools for products, prices, ing
 Return structured output using the provided response format.
 Always include ALL output keys from the schema.
 Set turnType to one of:
-- ORDER_MUTATION (create/add/remove/replace/quantity change)
+- RECOMMENDATION_SEARCH (menu search/recommendations with constraints)
+- ORDER_CREATE
+- ORDER_ADD
+- ORDER_REMOVE
+- ORDER_REPLACE
+- ORDER_QUANTITY_CHANGE
 - ORDER_QUERY (user asks for current order or total)
 - PROMO_QUERY (promo/discount question or promo application)
 - PRODUCT_INFO (ingredients/allergens/product details)
-- RECOMMENDATION (suggestions/budget/taste alternatives)
 - BUSINESS_INFO (hours/location/contact/payment options)
 - GENERAL_CONVERSATION (other)
 When a field is not relevant, use safe empty values:
@@ -413,8 +724,8 @@ When a field is not relevant, use safe empty values:
 Never use $, USD, dollars, cents, EUR, or €.
 All menu prices are in Ukrainian hryvnia (UAH). Numeric values are whole hryvnias, never cents.
 Never divide prices by 100 and never convert currencies.
-Only restate the full order in message when turnType is ORDER_MUTATION or ORDER_QUERY.
-For PROMO_QUERY, PRODUCT_INFO, RECOMMENDATION, BUSINESS_INFO, and GENERAL_CONVERSATION: answer directly and avoid repeating the full order summary.
+Only restate the full order in message when turnType is ORDER_CREATE, ORDER_ADD, ORDER_REMOVE, ORDER_REPLACE, ORDER_QUANTITY_CHANGE, or ORDER_QUERY.
+For PROMO_QUERY, PRODUCT_INFO, RECOMMENDATION_SEARCH, BUSINESS_INFO, and GENERAL_CONVERSATION: answer directly and avoid repeating the full order summary.
 If user modifies an in-progress order ("also add", "make that two", "remove item", "total now"), return the FULL updated proposedItems list.
 If request is ambiguous, ask one concise clarification question in "message".
 Never claim payment is successful.`,
@@ -425,12 +736,10 @@ Never claim payment is successful.`,
     role: entry.role,
     content: entry.content,
   }))
-
   const messageAlreadyIncluded =
     historyMessages.length > 0 &&
     historyMessages[historyMessages.length - 1].role === 'user' &&
     historyMessages[historyMessages.length - 1].content.trim() === message.trim()
-
   const messages = [
     {
       role: 'system' as const,
@@ -440,10 +749,7 @@ Never claim payment is successful.`,
     ...(messageAlreadyIncluded ? [] : [{ role: 'user' as const, content: message }]),
   ]
 
-  const execution = await agent.invoke({
-    messages,
-  })
-
+  const execution = await agent.invoke({ messages })
   const parsedOutput = execution.structuredResponse
   if (!parsedOutput) {
     return {
@@ -455,12 +761,16 @@ Never claim payment is successful.`,
     }
   }
 
+  const effectiveTurnType = resolveEffectiveTurnType({
+    userMessageTurnType,
+    modelTurnType: parsedOutput.turnType,
+  })
+
   const nextState: BaristaSessionState = {
     ...sessionState,
     proposedItems: [...sessionState.proposedItems],
   }
-
-  if (parsedOutput.clearProposedOrder) {
+  if (parsedOutput.clearProposedOrder && effectiveTurnType === 'ORDER_REPLACE') {
     nextState.proposedItems = []
   }
 
@@ -470,7 +780,6 @@ Never claim payment is successful.`,
 
   let appliedPromoCode = nextState.promoCode
   let promoInvalidMessage: string | null = null
-
   const requestedPromoCode = parsedOutput.promoCode.trim()
   if (requestedPromoCode) {
     const promoEvaluation = validatePromoCode({
@@ -488,8 +797,15 @@ Never claim payment is successful.`,
     }
   }
 
+  const orderMutationTurn =
+    effectiveTurnType === 'ORDER_CREATE' ||
+    effectiveTurnType === 'ORDER_ADD' ||
+    effectiveTurnType === 'ORDER_REMOVE' ||
+    effectiveTurnType === 'ORDER_REPLACE' ||
+    effectiveTurnType === 'ORDER_QUANTITY_CHANGE'
+
   let proposedOrder: AgentProposedOrder | null = null
-  if (parsedOutput.proposedItems.length > 0) {
+  if (orderMutationTurn && parsedOutput.proposedItems.length > 0) {
     proposedOrder = proposedOrderFromItems(
       parsedOutput.proposedItems.map((item) => ({
         product: item.product,
@@ -514,7 +830,6 @@ Never claim payment is successful.`,
   }
 
   nextState.promoCode = appliedPromoCode
-
   const orderChanged = !areCartItemsEqual(previousItems, nextState.proposedItems)
   const promoChanged = (previousPromoCode ?? '') !== (nextState.promoCode ?? '')
 
@@ -522,16 +837,21 @@ Never claim payment is successful.`,
   if (recommendations.length > 0) {
     payload.recommendations = recommendations
   }
-  if (proposedOrder) {
+
+  const shouldExposeProposedOrder =
+    proposedOrder !== null &&
+    (ORDER_TURN_TYPES.includes(effectiveTurnType) || promoChanged)
+  if (shouldExposeProposedOrder && proposedOrder) {
     payload.proposedOrder = proposedOrder
   }
+
   if (parsedOutput.suggestedPrompts.length > 0) {
     payload.suggestedPrompts = parsedOutput.suggestedPrompts.slice(0, 4)
   } else if (!parsedOutput.askToAddToCart) {
     payload.suggestedPrompts = DEFAULT_SUGGESTED_PROMPTS
   }
 
-  if (proposedOrder && parsedOutput.askToAddToCart) {
+  if (shouldExposeProposedOrder && parsedOutput.askToAddToCart && proposedOrder) {
     const totalCount = proposedOrder.items.reduce((sum, item) => sum + item.quantity, 0)
     payload.confirmAddToCart = {
       label: `Add ${totalCount} item${totalCount > 1 ? 's' : ''} to cart`,
@@ -544,7 +864,7 @@ Never claim payment is successful.`,
 
   const safeMessage = enforceUahMessage({
     rawMessage: promoInvalidMessage ?? parsedOutput.message,
-    turnType: parsedOutput.turnType,
+    turnType: effectiveTurnType,
     proposedOrder,
     orderChanged,
     promoChanged,

@@ -36,7 +36,7 @@ const orderA2 = makeOrder([
 
 const messageA1 = enforceUahMessage({
   rawMessage: 'Great choice. I have prepared your order.',
-  turnType: 'ORDER_MUTATION',
+  turnType: 'ORDER_CREATE',
   proposedOrder: orderA1,
   orderChanged: true,
   promoChanged: false,
@@ -49,7 +49,7 @@ assert(messageA1.includes('355'), `Expected 355 total in TEST A1: ${messageA1}`)
 
 const messageA2 = enforceUahMessage({
   rawMessage: 'Great choice. I have prepared your updated order.',
-  turnType: 'ORDER_MUTATION',
+  turnType: 'ORDER_ADD',
   proposedOrder: orderA2,
   orderChanged: true,
   promoChanged: false,
@@ -127,7 +127,7 @@ const orderD = makeOrder([
 ])
 const messageD = enforceUahMessage({
   rawMessage: 'Updated order prepared.',
-  turnType: 'ORDER_MUTATION',
+  turnType: 'ORDER_REMOVE',
   proposedOrder: orderD,
   orderChanged: true,
   promoChanged: false,

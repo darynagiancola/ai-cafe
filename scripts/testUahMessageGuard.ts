@@ -82,7 +82,7 @@ runScenario(
   'I want avocado toast and cappuccino',
   {
     rawMessage: 'Avocado Toast — $2.35. Cappuccino — $1.20.',
-    turnType: 'ORDER_MUTATION',
+    turnType: 'ORDER_CREATE',
     proposedOrder: buildOrder([
       { product: 'avocado toast', quantity: 1 },
       { product: 'cappuccino', quantity: 1 },
@@ -99,7 +99,7 @@ runScenario(
   'I want two cappuccinos',
   {
     rawMessage: 'Two cappuccinos for $2.40.',
-    turnType: 'ORDER_MUTATION',
+    turnType: 'ORDER_QUANTITY_CHANGE',
     proposedOrder: buildOrder([{ product: 'cappuccino', quantity: 2 }]),
     askToAddToCart: true,
   },
@@ -113,7 +113,7 @@ runScenario(
   'What can I get for 300 ₴?',
   {
     rawMessage: 'You can get Berry Cheesecake for $1.90 and cappuccino for $1.20.',
-    turnType: 'RECOMMENDATION',
+    turnType: 'RECOMMENDATION_SEARCH',
     proposedOrder: null,
     recommendations: [
       {
