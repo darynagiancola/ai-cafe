@@ -51,6 +51,18 @@ assert(
   duplicateApprovedResult.order.paymentStatus === 'approved',
   'Duplicate event must not change approved status',
 )
+assert(
+  duplicateApprovedResult.order.amount === approvedInvoice.amount,
+  'Duplicate event must not change order amount',
+)
+assert(
+  duplicateApprovedResult.order.is_premium === true,
+  'Duplicate event must not alter is_premium after approval',
+)
+assert(
+  duplicateApprovedResult.order.processedEventIds.length === 1,
+  'Duplicate event must not append another processed event id',
+)
 
 const declinedOrderRef = uniqueRef('ord_declined')
 createSimulatedInvoice({
