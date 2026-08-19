@@ -7,6 +7,8 @@ import { ContactPage } from './pages/ContactPage'
 import { HomePage } from './pages/HomePage'
 import { MenuPage } from './pages/MenuPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { PaymentSimulationPage } from './pages/PaymentSimulationPage'
+import { PaymentSuccessPage } from './pages/PaymentSuccessPage'
 import { ProductDetailPage } from './pages/ProductDetailPage'
 
 function App() {
@@ -20,6 +22,8 @@ function App() {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/payment/:orderReference" element={<PaymentSimulationPage />} />
+        <Route path="/payment/:orderReference/success" element={<PaymentSuccessPage />} />
         <Route path="/home" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

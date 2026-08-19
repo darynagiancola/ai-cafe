@@ -9,6 +9,7 @@
     "check:server": "tsc -p tsconfig.server.json",
     "check:openai-schemas": "npx tsx scripts/checkOpenAiSchemas.ts",
     "smoke:server-agent": "npx tsx scripts/smokeServerAgent.ts",
+    "test:payment-simulation": "npx tsx scripts/testPaymentSimulationFlow.ts",
     "test:uah-guard": "npx tsx scripts/testUahMessageGuard.ts",
     "test:response-policy": "npx tsx scripts/testResponsePolicy.ts",
     "test:recommendation-intent": "npx tsx scripts/testRecommendationIntentRegression.ts",

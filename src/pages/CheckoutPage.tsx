@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { CartSummary } from '../components/cart/CartSummary'
 import { useCart } from '../context/CartContext'
-import { attachPaymentResult, createOrderDraft } from '../services/orderService'
-import { initiateWayForPayPayment } from '../services/paymentService'
-import type { Order, OrderType } from '../types/order'
+import { createOrderDraft } from '../services/orderService'
+import { createSimulatedInvoice } from '../services/paymentService'
+import type { OrderType } from '../types/order'
 import { formatUAH } from '../utils/currency'
 
 interface CheckoutFormState {
@@ -28,13 +28,13 @@ const initialForm: CheckoutFormState = {
 }
 
 export function CheckoutPage() {
-  const { detailedItems, totals, promoCode, promoMessage, applyPromoCode, clearPromoCode, clearCart } = useCart()
+  const { detailedItems, totals, promoCode, promoMessage, applyPromoCode, clearPromoCode } = useCart()
+  const navigate = useNavigate()
   const [orderType, setOrderType] = useState<OrderType>('pickup')
   const [form, setForm] = useState<CheckoutFormState>(initialForm)
   const [promoInput, setPromoInput] = useState(promoCode ?? '')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [completedOrder, setCompletedOrder] = useState<Order | null>(null)
   const deliveryFee = orderType === 'delivery' ? 60 : 0
   const finalTotal = totals.total + deliveryFee
 
@@ -42,7 +42,7 @@ export function CheckoutPage() {
     setPromoInput(promoCode ?? '')
   }, [promoCode])
 
-  if (detailedItems.length === 0 && !completedOrder) {
+  if (detailedItems.length === 0) {
     return (
       <section className="container-shell py-14">
         <div className="card-surface mx-auto max-w-2xl bg-[#fffaf4] p-10 text-center">
@@ -94,59 +94,29 @@ export function CheckoutPage() {
     })
 
     try {
-      const paymentResult = await initiateWayForPayPayment({
-        orderId: draftOrder.id,
-        amount: finalTotal,
+      const invoice = await createSimulatedInvoice({
+        orderReference: draftOrder.id,
+        items: draftOrder.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
         currency: 'UAH',
-        description: `Order ${draftOrder.id} at AURELIA Café`,
+        promoCode,
+        orderType,
       })
 
-      const finalizedOrder = attachPaymentResult(draftOrder, paymentResult)
-      setCompletedOrder(finalizedOrder)
-      clearCart()
+      await navigate(`/payment/${invoice.orderReference}`)
     } catch {
-      setError('Payment initialization failed. Please try again.')
+      setError('Unable to create simulated payment invoice. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  if (completedOrder) {
-    return (
-      <section className="container-shell py-14">
-        <div className="card-surface mx-auto max-w-3xl bg-[#fffaf4] p-8 sm:p-10">
-          <h1 className="text-3xl font-semibold text-[#2a2320]">Payment initiated</h1>
-          <p className="mt-3 text-[#685d56]">
-            Order <strong>{completedOrder.id}</strong> created successfully in mock mode.
-          </p>
-          <div className="mt-6 rounded-2xl border border-[#e2d5ca] bg-[#fffaf4] p-5">
-            <p className="text-sm text-[#524741]">Payment provider: WayForPay (placeholder)</p>
-            <p className="mt-1 text-sm text-[#524741]">Payment status: {completedOrder.paymentStatus}</p>
-            <p className="mt-1 text-sm text-[#524741]">Payment reference: {completedOrder.paymentReference}</p>
-            <p className="mt-3 text-sm text-[#6f635b]">
-              In production, final payment status must be confirmed by backend webhook/callback before marking orders as paid.
-            </p>
-          </div>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              to="/menu"
-            className="btn-primary"
-            >
-              Continue shopping
-            </Link>
-            <Link to="/" className="btn-secondary">
-              Back to home
-            </Link>
-          </div>
-        </div>
-      </section>
-    )
-  }
-
   return (
     <section className="container-shell py-10 sm:py-14">
       <h1 className="display-serif text-5xl leading-[0.95] text-[#2a2320]">Checkout</h1>
-      <p className="mt-2 text-[#695f58]">Complete your details and continue to WayForPay payment flow.</p>
+      <p className="mt-2 text-[#695f58]">Complete your details and continue to simulated WayForPay payment.</p>
 
       <form className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]" onSubmit={(event) => void handleSubmit(event)}>
         <div className="space-y-5">
@@ -326,7 +296,7 @@ export function CheckoutPage() {
             disabled={isSubmitting}
             className="focus-ring w-full rounded-full bg-[#2a2320] px-6 py-3 text-sm font-semibold text-white transition duration-300 hover:-translate-y-0.5 hover:bg-[#191413] disabled:opacity-60"
           >
-            {isSubmitting ? 'Creating order...' : 'Pay with WayForPay'}
+            {isSubmitting ? 'Creating invoice...' : 'Continue to payment simulation'}
           </button>
           {error && (
             <p className="rounded-xl border border-[#e3b8ab] bg-[#fdeeea] px-4 py-3 text-sm text-[#8e2d1e]" role="alert">
