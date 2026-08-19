@@ -46,13 +46,13 @@ export function AIBaristaModal({ open, onClose }: AIBaristaModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#1f1a17]/50 p-4 md:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#1a1512]/60 p-4 backdrop-blur-sm md:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="ai-barista-title"
     >
-      <div className="card-surface w-full max-w-2xl overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[#e6d9cd] bg-[#f9f2e8] px-5 py-4">
+      <div className="card-surface w-full max-w-2xl overflow-hidden border-[#d4c6b8]">
+        <div className="flex items-center justify-between border-b border-[#e6d9cd] bg-[#f6ede1] px-5 py-4">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-[#8b4f38]" aria-hidden />
             <h3 id="ai-barista-title" className="text-lg font-semibold text-[#2a2320]">
@@ -69,14 +69,14 @@ export function AIBaristaModal({ open, onClose }: AIBaristaModalProps) {
           </button>
         </div>
 
-        <div className="max-h-[50vh] space-y-3 overflow-y-auto bg-[#fffdfb] p-5">
+        <div className="max-h-[50vh] space-y-3 overflow-y-auto bg-[#fffaf4] p-5">
           {messages.map((message, index) => (
             <div
               key={`${message.timestamp}-${index}`}
               className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
                 message.role === 'assistant'
-                  ? 'bg-[#f2e7dc] text-[#3f3530]'
-                  : 'ml-auto bg-[#8b4f38] text-white'
+                  ? 'bg-[#efe2d4] text-[#2f2621]'
+                  : 'ml-auto bg-[#7f4630] text-white'
               }`}
             >
               <div className="mb-1 flex items-center gap-1 text-xs opacity-80">
@@ -86,10 +86,10 @@ export function AIBaristaModal({ open, onClose }: AIBaristaModalProps) {
               <p className="whitespace-pre-line">{message.content}</p>
             </div>
           ))}
-          {loading && <p className="text-sm text-[#6a5e57]">AI Barista is crafting a response...</p>}
+          {loading && <p className="text-sm text-[#564a42]">AI Barista is crafting a response...</p>}
         </div>
 
-        <div className="border-t border-[#e6d9cd] bg-white p-4">
+        <div className="border-t border-[#e6d9cd] bg-[#fffdf9] p-4">
           <label htmlFor="ai-message" className="sr-only">
             Ask AI Barista
           </label>
@@ -106,13 +106,13 @@ export function AIBaristaModal({ open, onClose }: AIBaristaModalProps) {
                 }
               }}
               placeholder="Example: I need a vegan breakfast under ₴300"
-              className="focus-ring w-full rounded-xl border border-[#dccfc3] px-4 py-2.5 text-sm"
+              className="focus-ring w-full rounded-2xl border border-[#dccfc3] px-4 py-2.5 text-sm"
             />
             <button
               type="button"
               onClick={() => void handleSend()}
               disabled={loading}
-              className="focus-ring inline-flex items-center gap-2 rounded-xl bg-[#8b4f38] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              className="focus-ring inline-flex items-center gap-2 rounded-xl bg-[#7f4630] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#6b3b29] disabled:opacity-60"
             >
               Send <Send className="h-4 w-4" />
             </button>

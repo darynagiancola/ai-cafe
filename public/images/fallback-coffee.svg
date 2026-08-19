@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="Coffee placeholder">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f0e6d8" />
+      <stop offset="100%" stop-color="#e2cfbb" />
+    </linearGradient>
+    <linearGradient id="cup" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fffdf9" />
+      <stop offset="100%" stop-color="#f2ece5" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)" />
+  <circle cx="620" cy="500" r="220" fill="#c8b39f" opacity="0.2" />
+  <ellipse cx="600" cy="650" rx="250" ry="45" fill="#8d5f44" opacity="0.15" />
+  <rect x="420" y="320" width="360" height="300" rx="48" fill="url(#cup)" stroke="#c9b39f" stroke-width="16" />
+  <path d="M780 390h80c62 0 95 40 95 97 0 58-34 99-95 99h-80" fill="none" stroke="#c9b39f" stroke-width="18" />
+  <ellipse cx="600" cy="330" rx="180" ry="36" fill="#5c3a2b" />
+  <path d="M535 195c-15 25-15 46 0 66 15 21 15 43 0 66" fill="none" stroke="#8d5f44" stroke-linecap="round" stroke-width="14" opacity="0.5" />
+  <path d="M600 170c-15 25-15 46 0 66 15 21 15 43 0 66" fill="none" stroke="#8d5f44" stroke-linecap="round" stroke-width="14" opacity="0.5" />
+  <path d="M665 195c-15 25-15 46 0 66 15 21 15 43 0 66" fill="none" stroke="#8d5f44" stroke-linecap="round" stroke-width="14" opacity="0.5" />
+  <text x="600" y="780" text-anchor="middle" font-family="Georgia, serif" font-size="48" fill="#6e4f3c" letter-spacing="4">
+    AURELIA CAFE
+  </text>
+</svg>

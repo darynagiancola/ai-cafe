@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { CartSummary } from '../components/cart/CartSummary'
 import { QuantitySelector } from '../components/cart/QuantitySelector'
+import { SmartImage } from '../components/ui/SmartImage'
 import { useCart } from '../context/CartContext'
 import { formatUAH } from '../utils/currency'
 import { Trash2 } from 'lucide-react'
@@ -28,7 +29,7 @@ export function CartPage() {
           <p className="mt-3 text-[#695f58]">Add something from the menu to start your order.</p>
           <Link
             to="/menu"
-            className="focus-ring mt-6 inline-flex rounded-full bg-[#8b4f38] px-6 py-2.5 text-sm font-medium text-white"
+            className="btn-primary mt-6"
           >
             Explore menu
           </Link>
@@ -39,16 +40,16 @@ export function CartPage() {
 
   return (
     <section className="container-shell py-10 sm:py-14">
-      <h1 className="text-4xl font-semibold text-[#2a2320]">Your cart</h1>
+      <h1 className="display-serif text-5xl leading-[0.95] text-[#2a2320]">Your cart</h1>
       <p className="mt-2 text-[#695f58]">Review your products, apply promo code, then continue to checkout.</p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="space-y-4">
-          <div className="card-surface divide-y divide-[#eadfd4]">
+          <div className="card-surface divide-y divide-[#eadfd4] bg-[#fffaf4]">
             {detailedItems.map((item) => (
               <article key={item.product.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
-                  <img
+                  <SmartImage
                     src={item.product.image}
                     alt={item.product.name}
                     className="h-18 w-18 rounded-xl object-cover"
@@ -67,12 +68,7 @@ export function CartPage() {
                     onIncrease={() => increaseQty(item.product.id)}
                   />
                   <p className="w-20 text-right font-medium text-[#2a2320]">{formatUAH(item.lineTotal)}</p>
-                  <button
-                    type="button"
-                    onClick={() => removeFromCart(item.product.id)}
-                    className="focus-ring rounded-md p-2 text-[#705e52] hover:bg-[#f2e7dc]"
-                    aria-label={`Remove ${item.product.name}`}
-                  >
+                  <button type="button" onClick={() => removeFromCart(item.product.id)} className="focus-ring rounded-md p-2 text-[#705e52] transition hover:bg-[#f2e7dc]" aria-label={`Remove ${item.product.name}`}>
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -80,7 +76,7 @@ export function CartPage() {
             ))}
           </div>
 
-          <div className="card-surface p-5">
+          <div className="card-surface bg-[#fffaf4] p-5">
             <h2 className="text-lg font-semibold text-[#2a2320]">Promo code</h2>
             <p className="mt-1 text-sm text-[#695f58]">Try WELCOME10 for 10% off your order.</p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -89,21 +85,13 @@ export function CartPage() {
                 value={promoInput}
                 onChange={(event) => setPromoInput(event.target.value)}
                 placeholder="Enter promo code"
-                className="focus-ring min-w-[200px] flex-1 rounded-xl border border-[#dccfc3] px-4 py-2.5 text-sm"
+                className="focus-ring min-w-[200px] flex-1 rounded-2xl border border-[#dccfc3] px-4 py-2.5 text-sm"
               />
-              <button
-                type="button"
-                onClick={() => applyPromoCode(promoInput)}
-                className="focus-ring rounded-full bg-[#8b4f38] px-5 py-2.5 text-sm font-medium text-white"
-              >
+              <button type="button" onClick={() => applyPromoCode(promoInput)} className="btn-primary">
                 Apply
               </button>
               {promoCode && (
-                <button
-                  type="button"
-                  onClick={clearPromoCode}
-                  className="focus-ring rounded-full border border-[#d6c8bc] px-5 py-2.5 text-sm text-[#4f433d]"
-                >
+                <button type="button" onClick={clearPromoCode} className="btn-secondary">
                   Remove
                 </button>
               )}

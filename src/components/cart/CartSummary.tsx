@@ -17,8 +17,8 @@ export function CartSummary({
   ctaTo = '/checkout',
 }: CartSummaryProps) {
   return (
-    <aside className="card-surface p-5">
-      <h2 className="text-lg font-semibold text-[#2a2320]">Order summary</h2>
+    <aside className="card-surface bg-[#fffaf4] p-5 sm:p-6">
+      <h2 className="display-serif text-3xl font-semibold text-[#2a2320]">Order summary</h2>
       <dl className="mt-4 space-y-2 text-sm text-[#584d47]">
         <div className="flex items-center justify-between">
           <dt>Subtotal</dt>
@@ -34,10 +34,7 @@ export function CartSummary({
         </div>
       </dl>
       {ctaLabel && ctaTo && (
-        <Link
-          className="focus-ring mt-5 block rounded-full bg-[#8b4f38] px-4 py-2.5 text-center text-sm font-medium text-white transition hover:bg-[#72402b]"
-          to={ctaTo}
-        >
+        <Link className="btn-primary mt-5 flex" to={ctaTo}>
           {ctaLabel}
         </Link>
       )}
