@@ -1,0 +1,29 @@
+{
+  "extends": "./tsconfig.server.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "./docker-dist",
+    "rootDir": ".",
+    "declaration": false,
+    "sourceMap": false,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.docker-server.tsbuildinfo"
+  },
+  "include": [
+    "api/**/*.ts",
+    "src/agent/langchain/**/*.ts",
+    "src/agent/prompts/**/*.ts",
+    "src/agent/tools/**/*.ts",
+    "src/agent/types.ts",
+    "src/services/menuService.ts",
+    "src/services/promoService.ts",
+    "src/services/businessService.ts",
+    "src/server/**/*.ts",
+    "src/data/menu.ts",
+    "src/data/business.ts",
+    "src/types/menu.ts",
+    "src/types/business.ts",
+    "src/types/order.ts",
+    "src/types/paymentSimulation.ts",
+    "docker/apiServer.ts"
+  ]
+}
