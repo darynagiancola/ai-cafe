@@ -1,8 +1,5 @@
 import type { IncomingHttpHeaders } from 'node:http'
 import { z } from 'zod'
-import { AI_BARISTA_SYSTEM_PROMPT } from '../src/agent/prompts/aiBaristaPrompt'
-import { createLangChainAiBaristaTools } from '../src/agent/langchain/createLangChainTools'
-import { runOpenAiBaristaTurn } from '../src/agent/langchain/openAiBaristaRuntime'
 
 const conversationMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -129,6 +126,16 @@ export default async function handler(
   const body: RequestBody = parsed.data
 
   try {
+    const [
+      { AI_BARISTA_SYSTEM_PROMPT },
+      { createLangChainAiBaristaTools },
+      { runOpenAiBaristaTurn },
+    ] = await Promise.all([
+      import('../src/agent/prompts/aiBaristaPrompt.js'),
+      import('../src/agent/langchain/createLangChainTools.js'),
+      import('../src/agent/langchain/openAiBaristaRuntime.js'),
+    ])
+
     const response = await runOpenAiBaristaTurn({
       message: body.message,
       conversation: body.conversation,

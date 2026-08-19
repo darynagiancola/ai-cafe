@@ -1,4 +1,4 @@
-import type { BusinessInfo } from '../types/business'
+import type { BusinessInfo } from '../types/business.js'
 
 export const businessInfo: BusinessInfo = {
   brandName: 'AURELIA',

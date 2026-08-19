@@ -1,6 +1,6 @@
-import { menuService } from '../../services/menuService'
-import type { MenuProduct } from '../../types/menu'
-import type { MenuItemSummary, ProductDetails } from '../types'
+import { menuService } from '../../services/menuService.js'
+import type { MenuProduct } from '../../types/menu.js'
+import type { MenuItemSummary, ProductDetails } from '../types.js'
 
 export function toMenuItemSummary(product: MenuProduct): MenuItemSummary {
   return {

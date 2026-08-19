@@ -2,9 +2,9 @@ import type { StructuredTool } from '@langchain/core/tools'
 import { ChatOpenAI } from '@langchain/openai'
 import { createAgent } from 'langchain'
 import { z } from 'zod'
-import { DEFAULT_SUGGESTED_PROMPTS } from '../prompts/aiBaristaPrompt'
-import type { AgentMessagePayload, AgentProposedOrder, MenuItemSummary } from '../types'
-import { calculateCart, getProductDetails, validatePromoCode } from '../tools'
+import { DEFAULT_SUGGESTED_PROMPTS } from '../prompts/aiBaristaPrompt.js'
+import type { AgentMessagePayload, AgentProposedOrder, MenuItemSummary } from '../types.js'
+import { calculateCart, getProductDetails, validatePromoCode } from '../tools/index.js'
 
 const llmOutputSchema = z.object({
   message: z.string().min(1),

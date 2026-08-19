@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import type { ProductDetails } from '../types'
-import { resolveProductFromQuery, toProductDetails } from './helpers'
+import type { ProductDetails } from '../types.js'
+import { resolveProductFromQuery, toProductDetails } from './helpers.js'
 
 export const getProductDetailsSchema = z.object({
   query: z.string().min(1).describe('Product id, slug, or product name'),

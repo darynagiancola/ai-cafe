@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import { calculatePromoDiscount, validatePromoCode as validatePromoCodeFromService } from '../../services/promoService'
-import type { PromoEvaluation } from '../types'
-import { calculateCart } from './calculateCartTool'
+import { calculatePromoDiscount, validatePromoCode as validatePromoCodeFromService } from '../../services/promoService.js'
+import type { PromoEvaluation } from '../types.js'
+import { calculateCart } from './calculateCartTool.js'
 
 export const validatePromoCodeSchema = z.object({
   promoCode: z.string().min(1),
