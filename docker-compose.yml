@@ -1,0 +1,60 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    command: ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "4173"]
+    environment:
+      NODE_ENV: production
+    expose:
+      - "4173"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    command: ["node", "docker-dist/docker/apiServer.js"]
+    environment:
+      NODE_ENV: production
+      API_HOST: 0.0.0.0
+      API_PORT: "3000"
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost,http://localhost:4173,https://darynagiancola.github.io}
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  # Reverse proxy entrypoint for production-like deployment.
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
+      - ./docker/nginx/acme:/var/www/certbot:ro
+    restart: unless-stopped
+
+  # Current app uses in-memory payment storage and no real DB.
+  # This service is optional for future persistence work only.
+  database:
+    image: postgres:16-alpine
+    profiles: ["future-db"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
