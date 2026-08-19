@@ -38,12 +38,12 @@ export function CheckoutPage() {
   if (detailedItems.length === 0 && !completedOrder) {
     return (
       <section className="container-shell py-14">
-        <div className="card-surface mx-auto max-w-2xl p-10 text-center">
+        <div className="card-surface mx-auto max-w-2xl bg-[#fffaf4] p-10 text-center">
           <h1 className="text-3xl font-semibold text-[#2a2320]">No items to checkout</h1>
           <p className="mt-3 text-[#695f58]">Your cart is currently empty.</p>
           <Link
             to="/menu"
-            className="focus-ring mt-6 inline-flex rounded-full bg-[#8b4f38] px-6 py-2.5 text-sm font-medium text-white"
+            className="btn-primary mt-6"
           >
             Go to menu
           </Link>
@@ -107,7 +107,7 @@ export function CheckoutPage() {
   if (completedOrder) {
     return (
       <section className="container-shell py-14">
-        <div className="card-surface mx-auto max-w-3xl p-8 sm:p-10">
+        <div className="card-surface mx-auto max-w-3xl bg-[#fffaf4] p-8 sm:p-10">
           <h1 className="text-3xl font-semibold text-[#2a2320]">Payment initiated</h1>
           <p className="mt-3 text-[#685d56]">
             Order <strong>{completedOrder.id}</strong> created successfully in mock mode.
@@ -123,14 +123,11 @@ export function CheckoutPage() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               to="/menu"
-              className="focus-ring rounded-full bg-[#8b4f38] px-5 py-2.5 text-sm font-medium text-white"
+            className="btn-primary"
             >
               Continue shopping
             </Link>
-            <Link
-              to="/"
-              className="focus-ring rounded-full border border-[#d5c7bc] px-5 py-2.5 text-sm text-[#4f433d]"
-            >
+            <Link to="/" className="btn-secondary">
               Back to home
             </Link>
           </div>
@@ -141,12 +138,12 @@ export function CheckoutPage() {
 
   return (
     <section className="container-shell py-10 sm:py-14">
-      <h1 className="text-4xl font-semibold text-[#2a2320]">Checkout</h1>
+      <h1 className="display-serif text-5xl leading-[0.95] text-[#2a2320]">Checkout</h1>
       <p className="mt-2 text-[#695f58]">Complete your details and continue to WayForPay payment flow.</p>
 
       <form className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]" onSubmit={(event) => void handleSubmit(event)}>
         <div className="space-y-5">
-          <div className="card-surface p-5 sm:p-6">
+          <div className="card-surface bg-[#fffaf4] p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-[#2a2320]">Customer information</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <label className="text-sm text-[#544943]">
@@ -155,7 +152,7 @@ export function CheckoutPage() {
                   required
                   value={form.firstName}
                   onChange={(event) => setForm((current) => ({ ...current, firstName: event.target.value }))}
-                  className="focus-ring mt-1 w-full rounded-xl border border-[#dccfc3] px-4 py-2.5"
+                  className="focus-ring mt-1 w-full rounded-2xl border border-[#dccfc3] px-4 py-2.5"
                 />
               </label>
               <label className="text-sm text-[#544943]">
@@ -164,7 +161,7 @@ export function CheckoutPage() {
                   required
                   value={form.lastName}
                   onChange={(event) => setForm((current) => ({ ...current, lastName: event.target.value }))}
-                  className="focus-ring mt-1 w-full rounded-xl border border-[#dccfc3] px-4 py-2.5"
+                  className="focus-ring mt-1 w-full rounded-2xl border border-[#dccfc3] px-4 py-2.5"
                 />
               </label>
               <label className="text-sm text-[#544943]">
@@ -173,7 +170,7 @@ export function CheckoutPage() {
                   required
                   value={form.phone}
                   onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-                  className="focus-ring mt-1 w-full rounded-xl border border-[#dccfc3] px-4 py-2.5"
+                  className="focus-ring mt-1 w-full rounded-2xl border border-[#dccfc3] px-4 py-2.5"
                 />
               </label>
               <label className="text-sm text-[#544943]">
@@ -183,13 +180,13 @@ export function CheckoutPage() {
                   type="email"
                   value={form.email}
                   onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-                  className="focus-ring mt-1 w-full rounded-xl border border-[#dccfc3] px-4 py-2.5"
+                  className="focus-ring mt-1 w-full rounded-2xl border border-[#dccfc3] px-4 py-2.5"
                 />
               </label>
             </div>
           </div>
 
-          <div className="card-surface p-5 sm:p-6">
+          <div className="card-surface bg-[#fffaf4] p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-[#2a2320]">Order type</h2>
             <div className="mt-4 flex flex-wrap gap-3">
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#d6c8bc] px-4 py-2 text-sm">
@@ -222,7 +219,7 @@ export function CheckoutPage() {
                     required={orderType === 'delivery'}
                     value={form.addressLine}
                     onChange={(event) => setForm((current) => ({ ...current, addressLine: event.target.value }))}
-                    className="focus-ring mt-1 w-full rounded-xl border border-[#dccfc3] px-4 py-2.5"
+                    className="focus-ring mt-1 w-full rounded-2xl border border-[#dccfc3] px-4 py-2.5"
                   />
                 </label>
                 <label className="text-sm text-[#544943]">
@@ -231,7 +228,7 @@ export function CheckoutPage() {
                     required={orderType === 'delivery'}
                     value={form.city}
                     onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
-                    className="focus-ring mt-1 w-full rounded-xl border border-[#dccfc3] px-4 py-2.5"
+                    className="focus-ring mt-1 w-full rounded-2xl border border-[#dccfc3] px-4 py-2.5"
                   />
                 </label>
               </div>
@@ -243,7 +240,7 @@ export function CheckoutPage() {
                 rows={4}
                 value={form.notes}
                 onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-                className="focus-ring mt-1 w-full rounded-xl border border-[#dccfc3] px-4 py-2.5"
+                className="focus-ring mt-1 w-full rounded-2xl border border-[#dccfc3] px-4 py-2.5"
                 placeholder={
                   orderType === 'delivery'
                     ? 'Apartment entrance, call details, or dietary requests.'
@@ -253,7 +250,7 @@ export function CheckoutPage() {
             </label>
           </div>
 
-          <div className="card-surface p-5 sm:p-6">
+          <div className="card-surface bg-[#fffaf4] p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-[#2a2320]">Order summary</h2>
             <ul className="mt-3 space-y-2 text-sm">
               {detailedItems.map((item) => (
@@ -279,7 +276,7 @@ export function CheckoutPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="focus-ring w-full rounded-full bg-[#2a2320] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#191413] disabled:opacity-60"
+            className="focus-ring w-full rounded-full bg-[#2a2320] px-6 py-3 text-sm font-semibold text-white transition duration-300 hover:-translate-y-0.5 hover:bg-[#191413] disabled:opacity-60"
           >
             {isSubmitting ? 'Creating order...' : 'Pay with WayForPay'}
           </button>

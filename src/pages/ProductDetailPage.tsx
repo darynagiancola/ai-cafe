@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ProductCard } from '../components/menu/ProductCard'
 import { QuantitySelector } from '../components/cart/QuantitySelector'
+import { SmartImage } from '../components/ui/SmartImage'
 import { useCart } from '../context/CartContext'
 import { menuService } from '../services/menuService'
 import { formatUAH } from '../utils/currency'
@@ -39,23 +40,19 @@ export function ProductDetailPage() {
 
   return (
     <section className="container-shell py-10 sm:py-14">
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="focus-ring inline-flex items-center gap-2 rounded-full border border-[#dbcdbf] px-4 py-2 text-sm text-[#4c423d] hover:bg-[#f4e8de]"
-      >
+      <button type="button" onClick={() => navigate(-1)} className="btn-secondary">
         <ArrowLeft className="h-4 w-4" />
         Back
       </button>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-2">
         <div className="card-surface overflow-hidden">
-          <img src={product.image} alt={product.name} className="h-[360px] w-full object-cover sm:h-[460px]" />
+          <SmartImage src={product.image} alt={product.name} className="h-[360px] w-full object-cover sm:h-[460px]" />
         </div>
 
         <div className="space-y-5">
           <p className="text-xs uppercase tracking-[0.2em] text-[#8b4f38]">{product.category}</p>
-          <h1 className="text-4xl font-semibold text-[#2a2320]">{product.name}</h1>
+          <h1 className="display-serif text-5xl leading-[0.95] text-[#2a2320]">{product.name}</h1>
           <p className="text-2xl font-semibold text-[#2a2320]">{formatUAH(product.price)}</p>
           <p className="text-base leading-relaxed text-[#695f58]">{product.longDescription}</p>
 
@@ -89,7 +86,7 @@ export function ProductDetailPage() {
             <button
               type="button"
               onClick={() => addToCart(product.id, quantity)}
-              className="focus-ring rounded-full bg-[#8b4f38] px-6 py-2.5 text-sm font-medium text-white transition hover:bg-[#75412d]"
+              className="btn-primary"
             >
               Add to cart
             </button>

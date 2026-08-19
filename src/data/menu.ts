@@ -12,7 +12,7 @@ export const menuProducts: MenuProduct[] = [
     longDescription:
       'Our signature cappuccino pairs a chocolate-forward house espresso with silky steamed milk. Balanced sweetness and a rich crema make it a morning ritual favorite.',
     image:
-      'https://images.unsplash.com/photo-1572441713132-51c75654db73?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=1200&q=80',
     ingredients: ['Double espresso', 'Steamed milk', 'Microfoam'],
     allergens: ['Milk'],
     dietaryTags: ['Vegetarian'],

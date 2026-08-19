@@ -1,14 +1,16 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
-  --bg-main: #f7f2eb;
-  --bg-surface: #fcfaf6;
+  --bg-main: #f5efe6;
+  --bg-muted: #efe5d7;
+  --bg-surface: #fffdf9;
   --text-main: #1f1a17;
-  --text-muted: #695f58;
-  --accent-primary: #8b4f38;
-  --accent-secondary: #b9754f;
-  --accent-green: #5b7a67;
-  --border-soft: #e8ddd2;
+  --text-muted: #5e534b;
+  --accent-primary: #7f4630;
+  --accent-secondary: #b56d49;
+  --accent-olive: #5f705e;
+  --border-soft: #ded0c1;
 }
 
 *,
@@ -26,8 +28,11 @@ body,
 body {
   margin: 0;
   color: var(--text-main);
-  background-color: var(--bg-main);
-  font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background:
+    radial-gradient(circle at 8% 2%, rgba(181, 109, 73, 0.11), transparent 45%),
+    radial-gradient(circle at 92% 10%, rgba(95, 112, 94, 0.1), transparent 40%),
+    var(--bg-main);
+  font-family: "Manrope", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -37,14 +42,33 @@ a {
   text-decoration: none;
 }
 
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
 .focus-ring {
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b4f38] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f7f2eb];
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7f4630] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5efe6];
 }
 
 .container-shell {
-  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  @apply mx-auto w-full max-w-[1180px] px-4 sm:px-6 lg:px-10;
+}
+
+.display-serif {
+  font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
 }
 
 .card-surface {
-  @apply rounded-2xl border border-[#e8ddd2] bg-[#fcfaf6] shadow-sm;
+  @apply rounded-3xl border border-[#e2d4c6] bg-[#fffdf9]/95 shadow-[0_8px_28px_-16px_rgba(31,26,23,0.3)];
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-full bg-[#7f4630] px-5 py-2.5 text-sm font-semibold text-white transition duration-300 hover:-translate-y-0.5 hover:bg-[#6a3826] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7f4630] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5efe6];
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 rounded-full border border-[#d4c4b6] bg-[#fffaf4] px-5 py-2.5 text-sm font-semibold text-[#3e352f] transition duration-300 hover:-translate-y-0.5 hover:bg-[#f4ebdf] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7f4630] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f5efe6];
 }
