@@ -10,6 +10,8 @@
     "check:openai-schemas": "npx tsx scripts/checkOpenAiSchemas.ts",
     "smoke:server-agent": "npx tsx scripts/smokeServerAgent.ts",
     "test:uah-guard": "npx tsx scripts/testUahMessageGuard.ts",
+    "test:response-policy": "npx tsx scripts/testResponsePolicy.ts",
+    "test:recommendation-intent": "npx tsx scripts/testRecommendationIntentRegression.ts",
     "lint": "oxlint",
     "preview": "vite preview"
   },

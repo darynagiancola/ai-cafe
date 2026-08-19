@@ -1,4 +1,5 @@
 import { enforceUahMessage } from '../src/agent/langchain/openAiBaristaRuntime.js'
+import type { TurnType } from '../src/agent/langchain/openAiBaristaRuntime.js'
 import type { AgentProposedOrder, MenuItemSummary } from '../src/agent/types.js'
 import { calculateCart, validatePromoCode } from '../src/agent/tools/index.js'
 
@@ -50,7 +51,11 @@ function runScenario(
   name: string,
   input: {
     rawMessage: string
+    turnType: TurnType
     proposedOrder: AgentProposedOrder | null
+    orderChanged?: boolean
+    promoChanged?: boolean
+    promoCode?: string | null
     recommendations?: MenuItemSummary[]
     askToAddToCart?: boolean
   },
@@ -58,7 +63,12 @@ function runScenario(
 ) {
   const message = enforceUahMessage({
     rawMessage: input.rawMessage,
+    turnType: input.turnType,
     proposedOrder: input.proposedOrder,
+    orderChanged: input.orderChanged ?? Boolean(input.proposedOrder),
+    promoChanged: input.promoChanged ?? false,
+    promoCode: input.promoCode ?? input.proposedOrder?.promoCode ?? null,
+    attemptedPromoCode: input.promoCode ?? '',
     recommendations: input.recommendations ?? [],
     askToAddToCart: input.askToAddToCart ?? false,
   })
@@ -72,6 +82,7 @@ runScenario(
   'I want avocado toast and cappuccino',
   {
     rawMessage: 'Avocado Toast — $2.35. Cappuccino — $1.20.',
+    turnType: 'ORDER_CREATE',
     proposedOrder: buildOrder([
       { product: 'avocado toast', quantity: 1 },
       { product: 'cappuccino', quantity: 1 },
@@ -88,6 +99,7 @@ runScenario(
   'I want two cappuccinos',
   {
     rawMessage: 'Two cappuccinos for $2.40.',
+    turnType: 'ORDER_QUANTITY_CHANGE',
     proposedOrder: buildOrder([{ product: 'cappuccino', quantity: 2 }]),
     askToAddToCart: true,
   },
@@ -101,6 +113,7 @@ runScenario(
   'What can I get for 300 ₴?',
   {
     rawMessage: 'You can get Berry Cheesecake for $1.90 and cappuccino for $1.20.',
+    turnType: 'RECOMMENDATION_SEARCH',
     proposedOrder: null,
     recommendations: [
       {
@@ -135,6 +148,7 @@ runScenario(
   'Apply WELCOME10',
   {
     rawMessage: 'WELCOME10 applied. New total is $3.19.',
+    turnType: 'PROMO_QUERY',
     proposedOrder: buildPromoOrder(
       [
         { product: 'avocado toast', quantity: 1 },
@@ -142,6 +156,8 @@ runScenario(
       ],
       'WELCOME10',
     ),
+    promoChanged: true,
+    promoCode: 'WELCOME10',
   },
   (message) => {
     assert(message.includes('WELCOME10'), `Expected promo code in message: ${message}`)
