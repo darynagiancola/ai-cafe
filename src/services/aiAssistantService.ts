@@ -15,7 +15,33 @@ export interface ConfirmedCartAddAction {
   assistantMessage: AssistantMessage
 }
 
+export interface AssistantConversationMessage {
+  role: 'assistant' | 'user'
+  content: string
+}
+
+interface AiBaristaSessionState {
+  proposedItems: { productId: string; quantity: number }[]
+  promoCode: string | null
+}
+
+interface AiBackendResponse {
+  message: string
+  payload?: AgentMessagePayload
+  sessionState?: AiBaristaSessionState
+}
+
+const apiBaseUrl = import.meta.env.VITE_AI_API_URL?.trim() ?? ''
+const backendEndpoint = apiBaseUrl
+  ? `${apiBaseUrl.replace(/\/$/, '')}/api/barista`
+  : '/api/barista'
+
 const aiBaristaAgent = new AureliaAiBaristaAgent()
+let fallbackNoticeShown = false
+let sessionState: AiBaristaSessionState = {
+  proposedItems: [],
+  promoCode: null,
+}
 
 function createAssistantMessage(
   content: string,
@@ -43,20 +69,81 @@ export function getAiBaristaSuggestedPrompts(): string[] {
 
 export function resetAiBaristaSession() {
   aiBaristaAgent.resetSession()
+  sessionState = {
+    proposedItems: [],
+    promoCode: null,
+  }
+  fallbackNoticeShown = false
 }
 
 export function getAiBaristaToolNames(): string[] {
   return aiBaristaAgent.getAvailableToolNames()
 }
 
-export async function sendMessageToAiBarista(input: string): Promise<AssistantMessage> {
+export async function sendMessageToAiBarista(
+  input: string,
+  conversation: AssistantConversationMessage[],
+): Promise<AssistantMessage> {
+  try {
+    const response = await fetch(backendEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: input,
+        conversation,
+        sessionState,
+      }),
+    })
+
+    if (response.ok) {
+      const payload = (await response.json()) as AiBackendResponse
+      sessionState = payload.sessionState ?? sessionState
+
+      if (payload.payload?.proposedOrder) {
+        sessionState.proposedItems = payload.payload.proposedOrder.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        }))
+      }
+
+      return createAssistantMessage(payload.message, payload.payload)
+    }
+  } catch {
+    // Gracefully fall back below.
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 450))
 
-  const result = await aiBaristaAgent.handleMessage(input)
-  return createAssistantMessage(result.message, result.payload)
+  const deterministicResult = await aiBaristaAgent.handleMessage(input)
+  const fallbackPrefix = !fallbackNoticeShown
+    ? 'Live AI backend is unavailable right now, so I switched to local deterministic mode.\n\n'
+    : ''
+  fallbackNoticeShown = true
+
+  return createAssistantMessage(
+    `${fallbackPrefix}${deterministicResult.message}`,
+    deterministicResult.payload,
+  )
 }
 
-export function confirmProposedItemsForCart(): ConfirmedCartAddAction | null {
+export function confirmProposedItemsForCart(
+  confirmedItems?: { productId: string; quantity: number }[],
+): ConfirmedCartAddAction | null {
+  if (confirmedItems && confirmedItems.length > 0) {
+    sessionState = {
+      ...sessionState,
+      proposedItems: [],
+    }
+
+    return {
+      cartItems: confirmedItems,
+      assistantMessage: createAssistantMessage(
+        'Great — I added those items to your cart. You can continue to checkout whenever you are ready.',
+        { suggestedPrompts: ['Apply WELCOME10', 'Recommend one more dessert', 'Show breakfast options'] },
+      ),
+    }
+  }
+
   const proposal = aiBaristaAgent.consumeProposedOrderForCart()
   if (!proposal) {
     return null

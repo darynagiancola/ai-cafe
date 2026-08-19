@@ -38,6 +38,16 @@ Build for production:
 npm run build
 ```
 
+### AI Barista backend (optional, for real LLM mode)
+
+The frontend can run in deterministic local mode without any API key.
+
+To enable real LangChain + OpenAI agent mode, run a backend endpoint (Vercel Function) and set:
+
+```bash
+VITE_AI_API_URL=<your_public_backend_base_url>
+```
+
 ---
 
 ## Current Features
@@ -137,7 +147,10 @@ src/
 
 ### 1) LangChain AI Barista
 
-Current status: an MVP AI Barista agent architecture is implemented with deterministic tooling and LangChain-ready wrappers.
+Current status: AURELIA AI Barista supports:
+
+- deterministic local fallback runtime (no API key required);
+- real LLM-backed LangChain agent runtime via backend `/api/barista`.
 
 It can:
 
@@ -152,8 +165,10 @@ Agent runtime files:
 
 - `src/agent/aiBaristaAgent.ts`
 - `src/agent/tools/*` (deterministic authoritative tools)
-- `src/agent/langchain/createLangChainTools.ts` (LangChain wrappers for future provider integration)
+- `src/agent/langchain/createLangChainTools.ts` (LangChain wrappers)
+- `src/agent/langchain/openAiBaristaRuntime.ts` (OpenAI-backed tool-calling runtime)
 - `src/services/aiAssistantService.ts` (UI-facing service interface)
+- `api/barista.ts` (secure backend endpoint)
 
 ### AI Barista Role & Constraints
 
@@ -188,11 +203,44 @@ The AI Barista keeps limited in-browser session memory only:
 
 No long-term profiling or sensitive payment data is stored.
 
-### MVP Model Runtime (No API Key Required)
+### Runtime modes
 
-The current MVP uses deterministic intent handling + tool calls so the app runs locally without paid LLM credentials.
+1. **Real LLM mode (preferred):**
+   - frontend calls backend `/api/barista`
+   - backend runs LangChain agent + OpenAI model + authoritative tools
+   - OpenAI key stays server-side only (`OPENAI_API_KEY`)
 
-For production LLMs (OpenAI/Anthropic/etc.), connect a server-side provider to the existing agent/tool interfaces; do not place secrets in frontend code.
+2. **Deterministic fallback mode:**
+   - used when backend is unavailable or key missing
+   - keeps the UI functional for local/course demo use
+
+### Security model
+
+- Frontend never calls OpenAI directly.
+- `OPENAI_API_KEY` is server-side only.
+- No `VITE_OPENAI_API_KEY` is used.
+- Tools remain authoritative for menu/prices/allergens/promos/totals.
+- Agent cannot mark orders as paid.
+
+### Environment variables
+
+See `.env.example`.
+
+Required for backend LLM mode:
+
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL` (optional override, default `gpt-4o-mini`)
+- `ALLOWED_ORIGINS` (comma-separated CORS origins)
+
+Frontend public config:
+
+- `VITE_AI_API_URL` (public backend base URL; safe to expose)
+
+Optional:
+
+- `LANGSMITH_TRACING`
+- `LANGSMITH_API_KEY`
+- `LANGSMITH_PROJECT`
 
 ### 2) Supabase
 
@@ -221,3 +269,48 @@ Planned: After successful paid order persistence, expose order stream/queue for 
 - Keep `src/data/menu.ts` as authoritative reference shape while migrating to Supabase schema.
 - Preserve deterministic price/discount calculations server-side as source of truth.
 - Treat AI outputs as assistive text only; never authoritative for payment/order status.
+- Keep OpenAI/provider calls on backend only; never expose provider secrets in Vite client code.
+
+---
+
+## Local Development (Frontend + Backend)
+
+### Frontend only (deterministic fallback mode)
+
+```bash
+npm install
+npm run dev
+```
+
+### Frontend + real LLM backend
+
+1. Create `.env` from `.env.example` and set:
+   - `OPENAI_API_KEY`
+2. Start Vercel Functions locally:
+
+```bash
+npx vercel dev
+```
+
+3. In a second terminal, start Vite frontend with backend URL:
+
+```bash
+VITE_AI_API_URL=http://localhost:3000 npm run dev
+```
+
+If backend is unavailable, frontend gracefully falls back to deterministic mode.
+
+---
+
+## Vercel Deployment Steps (Manual)
+
+1. Import the GitHub repository into Vercel.
+2. Ensure Vercel project includes the `/api/barista` function.
+3. In Vercel Project Settings → Environment Variables, add:
+   - `OPENAI_API_KEY`
+   - `OPENAI_MODEL` (optional)
+   - `ALLOWED_ORIGINS` (include GitHub Pages origin, e.g. `https://darynagiancola.github.io`)
+4. Deploy and copy the deployed backend base URL (e.g. `https://your-app.vercel.app`).
+5. In frontend environment/config for GitHub Pages build, set:
+   - `VITE_AI_API_URL=https://your-app.vercel.app`
+6. Rebuild/redeploy GitHub Pages frontend so it points to the backend API.
