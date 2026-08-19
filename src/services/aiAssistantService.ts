@@ -1,54 +1,72 @@
-import { businessService } from './businessService'
-import { menuService } from './menuService'
+import { AureliaAiBaristaAgent } from '../agent/aiBaristaAgent'
+import { DEFAULT_SUGGESTED_PROMPTS } from '../agent/prompts/aiBaristaPrompt'
+import type { AgentMessagePayload } from '../agent/types'
 
 export interface AssistantMessage {
+  id: string
   role: 'assistant' | 'user'
   content: string
   timestamp: string
+  payload?: AgentMessagePayload
 }
 
-export interface AssistantContext {
-  budget?: number
-  dietaryPreference?: string
+export interface ConfirmedCartAddAction {
+  cartItems: { productId: string; quantity: number }[]
+  assistantMessage: AssistantMessage
 }
 
-const cannedSuggestions = [
-  'If you love balanced milk coffee, try Cappuccino with a Cinnamon Roll.',
-  'For a lighter option, Matcha Latte with Avocado Toast is a great pair.',
-  'On a sweet brunch mood: Pancakes and a Berry Latte work beautifully together.',
-]
+const aiBaristaAgent = new AureliaAiBaristaAgent()
 
-export async function sendMessageToAiBarista(
-  input: string,
-  context?: AssistantContext,
-): Promise<AssistantMessage> {
-  const businessInfo = businessService.getBusinessInfo()
-  const products = menuService.getAllProducts()
-  const normalized = input.toLowerCase()
-  const firstUnderBudget = context?.budget
-    ? products.find((product) => product.price <= context.budget!)
-    : undefined
+function createAssistantMessage(
+  content: string,
+  payload?: AgentMessagePayload,
+): AssistantMessage {
+  return {
+    id: crypto.randomUUID(),
+    role: 'assistant',
+    content,
+    payload,
+    timestamp: new Date().toISOString(),
+  }
+}
 
-  let response = cannedSuggestions[Math.floor(Math.random() * cannedSuggestions.length)]
+export function getAiBaristaStarterMessage(): AssistantMessage {
+  return createAssistantMessage(
+    'Hi, I’m AURELIA AI Barista. I can help with recommendations, ingredients, allergens, budgets, promo codes, and building your order.',
+    { suggestedPrompts: DEFAULT_SUGGESTED_PROMPTS },
+  )
+}
 
-  if (normalized.includes('vegan')) {
-    response =
-      'Vegan pick: Avocado Toast and Cold Brew. I can also suggest Specialty Coffee Beans for home brewing.'
-  } else if (normalized.includes('allergen')) {
-    response =
-      'I can help with allergen-aware choices. For example, Espresso and Specialty Coffee Beans contain no listed allergens.'
-  } else if (firstUnderBudget) {
-    response = `Within ₴${context?.budget}, I’d start with ${firstUnderBudget.name} for ₴${firstUnderBudget.price}.`
-  } else if (normalized.includes('where') || normalized.includes('hours')) {
-    response = `${businessInfo.brandName} is at ${businessInfo.address}, ${businessInfo.city}. Hours vary by day and are shown on our Contact page.`
+export function getAiBaristaSuggestedPrompts(): string[] {
+  return aiBaristaAgent.getSuggestedPrompts()
+}
+
+export function resetAiBaristaSession() {
+  aiBaristaAgent.resetSession()
+}
+
+export function getAiBaristaToolNames(): string[] {
+  return aiBaristaAgent.getAvailableToolNames()
+}
+
+export async function sendMessageToAiBarista(input: string): Promise<AssistantMessage> {
+  await new Promise((resolve) => setTimeout(resolve, 450))
+
+  const result = await aiBaristaAgent.handleMessage(input)
+  return createAssistantMessage(result.message, result.payload)
+}
+
+export function confirmProposedItemsForCart(): ConfirmedCartAddAction | null {
+  const proposal = aiBaristaAgent.consumeProposedOrderForCart()
+  if (!proposal) {
+    return null
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 700))
-
   return {
-    role: 'assistant',
-    content:
-      `${response} \n\nNote: This is a mock AI barista preview. Future production recommendations will be powered by LangChain tools using authoritative menu and pricing data.`,
-    timestamp: new Date().toISOString(),
+    cartItems: proposal.items,
+    assistantMessage: createAssistantMessage(
+      `Great — ${proposal.summary} You can continue to Cart or Checkout when ready.`,
+      { suggestedPrompts: ['Show my cart summary', 'Apply WELCOME10', 'Recommend one more dessert'] },
+    ),
   }
 }
