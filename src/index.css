@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+:root {
+  --bg-main: #f7f2eb;
+  --bg-surface: #fcfaf6;
+  --text-main: #1f1a17;
+  --text-muted: #695f58;
+  --accent-primary: #8b4f38;
+  --accent-secondary: #b9754f;
+  --accent-green: #5b7a67;
+  --border-soft: #e8ddd2;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text-main);
+  background-color: var(--bg-main);
+  font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.focus-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b4f38] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f7f2eb];
+}
+
+.container-shell {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+.card-surface {
+  @apply rounded-2xl border border-[#e8ddd2] bg-[#fcfaf6] shadow-sm;
+}
