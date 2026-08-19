@@ -6,21 +6,19 @@ import { DEFAULT_SUGGESTED_PROMPTS } from '../prompts/aiBaristaPrompt.js'
 import type { AgentMessagePayload, AgentProposedOrder, MenuItemSummary } from '../types.js'
 import { calculateCart, getProductDetails, validatePromoCode } from '../tools/index.js'
 
-const llmOutputSchema = z.object({
+export const llmOutputSchema = z.object({
   message: z.string().min(1),
-  recommendedProductQueries: z.array(z.string()).optional(),
-  proposedItems: z
-    .array(
-      z.object({
-        product: z.string().min(1),
-        quantity: z.number().int().positive().default(1),
-      }),
-    )
-    .optional(),
-  askToAddToCart: z.boolean().optional().default(false),
-  promoCode: z.string().optional().nullable(),
-  clearProposedOrder: z.boolean().optional().default(false),
-  suggestedPrompts: z.array(z.string()).optional(),
+  recommendedProductQueries: z.array(z.string()),
+  proposedItems: z.array(
+    z.object({
+      product: z.string().min(1),
+      quantity: z.number().int().positive(),
+    }),
+  ),
+  askToAddToCart: z.boolean(),
+  promoCode: z.string(),
+  clearProposedOrder: z.boolean(),
+  suggestedPrompts: z.array(z.string()),
 })
 
 export interface BaristaConversationMessage {
@@ -163,6 +161,11 @@ export async function runOpenAiBaristaTurn({
 
 You are a tool-calling assistant. Always rely on tools for products, prices, ingredients, allergens, promo codes, and totals.
 Return structured output using the provided response format.
+Always include ALL output keys from the schema.
+When a field is not relevant, use safe empty values:
+- arrays: []
+- booleans: false
+- promoCode: ""
 If user modifies an in-progress order ("also add", "make that two", "remove item", "total now"), return the FULL updated proposedItems list.
 If request is ambiguous, ask one concise clarification question in "message".
 Never claim payment is successful.`,
@@ -212,16 +215,17 @@ Never claim payment is successful.`,
     nextState.proposedItems = []
   }
 
-  const recommendations = (parsedOutput.recommendedProductQueries ?? [])
+  const recommendations = parsedOutput.recommendedProductQueries
     .map((query) => toSummaryFromDetails(query))
     .filter((item): item is MenuItemSummary => item !== null)
 
   let appliedPromoCode = nextState.promoCode
   let promoInvalidMessage: string | null = null
 
-  if (parsedOutput.promoCode) {
+  const requestedPromoCode = parsedOutput.promoCode.trim()
+  if (requestedPromoCode) {
     const promoEvaluation = validatePromoCode({
-      promoCode: parsedOutput.promoCode,
+      promoCode: requestedPromoCode,
       items: nextState.proposedItems.map((item) => ({
         product: item.productId,
         quantity: item.quantity,
@@ -236,11 +240,11 @@ Never claim payment is successful.`,
   }
 
   let proposedOrder: AgentProposedOrder | null = null
-  if (parsedOutput.proposedItems && parsedOutput.proposedItems.length > 0) {
+  if (parsedOutput.proposedItems.length > 0) {
     proposedOrder = proposedOrderFromItems(
       parsedOutput.proposedItems.map((item) => ({
         product: item.product,
-        quantity: item.quantity ?? 1,
+        quantity: item.quantity,
       })),
       appliedPromoCode,
     )
@@ -269,7 +273,7 @@ Never claim payment is successful.`,
   if (proposedOrder) {
     payload.proposedOrder = proposedOrder
   }
-  if (parsedOutput.suggestedPrompts && parsedOutput.suggestedPrompts.length > 0) {
+  if (parsedOutput.suggestedPrompts.length > 0) {
     payload.suggestedPrompts = parsedOutput.suggestedPrompts.slice(0, 4)
   } else if (!parsedOutput.askToAddToCart) {
     payload.suggestedPrompts = DEFAULT_SUGGESTED_PROMPTS
