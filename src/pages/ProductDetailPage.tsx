@@ -2,6 +2,7 @@ import { AlertCircle, ArrowLeft, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ProductCard } from '../components/menu/ProductCard'
+import { AddToCartButton } from '../components/cart/AddToCartButton'
 import { QuantitySelector } from '../components/cart/QuantitySelector'
 import { SmartImage } from '../components/ui/SmartImage'
 import { useCart } from '../context/CartContext'
@@ -83,13 +84,7 @@ export function ProductDetailPage() {
               onDecrease={() => setQuantity((value) => Math.max(1, value - 1))}
               onIncrease={() => setQuantity((value) => value + 1)}
             />
-            <button
-              type="button"
-              onClick={() => addToCart(product.id, quantity)}
-              className="btn-primary"
-            >
-              Add to cart
-            </button>
+            <AddToCartButton onAdd={() => addToCart(product.id, quantity)} />
           </div>
         </div>
       </div>

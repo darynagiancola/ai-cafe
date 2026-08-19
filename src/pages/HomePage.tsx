@@ -1,6 +1,7 @@
 import { ArrowRight, Coffee, Leaf, Sparkles, Star } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AddToCartButton } from '../components/cart/AddToCartButton'
 import { AIBaristaModal } from '../components/ai/AIBaristaModal'
 import { ProductCard } from '../components/menu/ProductCard'
 import { SectionHeading } from '../components/ui/SectionHeading'
@@ -106,9 +107,7 @@ export function HomePage() {
                   </div>
                   <div className="mt-5 flex flex-wrap items-center gap-3">
                     <p className="text-xl font-semibold text-[#241d19]">{formatUAH(leadProduct.price)}</p>
-                    <button type="button" onClick={() => addToCart(leadProduct.id)} className="btn-primary">
-                      Add to cart
-                    </button>
+                    <AddToCartButton onAdd={() => addToCart(leadProduct.id)} />
                     <Link className="btn-secondary" to={`/menu/${leadProduct.slug}`}>
                       Details
                     </Link>
@@ -135,9 +134,11 @@ export function HomePage() {
                     <p className="mt-1 line-clamp-2 text-sm text-[#5e534b]">{product.description}</p>
                     <div className="mt-auto flex items-center justify-between pt-3">
                       <span className="font-semibold text-[#2a2320]">{formatUAH(product.price)}</span>
-                      <button type="button" onClick={() => addToCart(product.id)} className="btn-primary px-4 py-2 text-xs">
-                        Add
-                      </button>
+                      <AddToCartButton
+                        onAdd={() => addToCart(product.id)}
+                        className="px-4 py-2 text-xs"
+                        defaultLabel="Add to cart"
+                      />
                     </div>
                   </div>
                 </div>
