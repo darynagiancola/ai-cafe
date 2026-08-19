@@ -19,9 +19,12 @@
     "src/services/menuService.ts",
     "src/services/promoService.ts",
     "src/services/businessService.ts",
+    "src/server/**/*.ts",
     "src/data/menu.ts",
     "src/data/business.ts",
     "src/types/menu.ts",
-    "src/types/business.ts"
+    "src/types/business.ts",
+    "src/types/order.ts",
+    "src/types/paymentSimulation.ts"
   ]
 }
