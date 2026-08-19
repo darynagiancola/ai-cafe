@@ -1,4 +1,4 @@
-import type { MenuProduct } from '../types/menu'
+import type { MenuProduct } from '../types/menu.js'
 
 export const menuProducts: MenuProduct[] = [
   {

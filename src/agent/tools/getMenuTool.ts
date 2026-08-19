@@ -1,8 +1,8 @@
 import { z } from 'zod'
-import { menuService } from '../../services/menuService'
-import { MENU_CATEGORIES } from '../../types/menu'
-import type { MenuItemSummary } from '../types'
-import { toMenuItemSummary } from './helpers'
+import { menuService } from '../../services/menuService.js'
+import { MENU_CATEGORIES } from '../../types/menu.js'
+import type { MenuItemSummary } from '../types.js'
+import { toMenuItemSummary } from './helpers.js'
 
 export const getMenuSchema = z.object({
   category: z

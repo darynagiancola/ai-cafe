@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { businessService } from '../../services/businessService'
+import { businessService } from '../../services/businessService.js'
 
 export const getBusinessInfoSchema = z.object({
   topic: z

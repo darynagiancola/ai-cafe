@@ -1,8 +1,8 @@
 import { z } from 'zod'
-import { menuService } from '../../services/menuService'
-import { MENU_CATEGORIES } from '../../types/menu'
-import type { MenuItemSummary } from '../types'
-import { normalizeText, toMenuItemSummary } from './helpers'
+import { menuService } from '../../services/menuService.js'
+import { MENU_CATEGORIES } from '../../types/menu.js'
+import type { MenuItemSummary } from '../types.js'
+import { normalizeText, toMenuItemSummary } from './helpers.js'
 
 export const searchMenuSchema = z.object({
   query: z.string().optional().describe('Free-form user preference query'),

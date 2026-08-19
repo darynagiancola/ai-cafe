@@ -1,4 +1,4 @@
-import type { MenuCategory } from '../types/menu'
+import type { MenuCategory } from '../types/menu.js'
 
 export interface MenuItemSummary {
   id: string

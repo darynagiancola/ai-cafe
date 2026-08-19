@@ -13,7 +13,7 @@ import {
   searchMenuSchema,
   validatePromoCode,
   validatePromoCodeSchema,
-} from '../tools'
+} from '../tools/index.js'
 
 export function createLangChainAiBaristaTools(): StructuredTool[] {
   return [

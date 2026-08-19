@@ -1,4 +1,4 @@
-import { businessInfo } from '../data/business'
+import { businessInfo } from '../data/business.js'
 
 export const businessService = {
   getBusinessInfo() {

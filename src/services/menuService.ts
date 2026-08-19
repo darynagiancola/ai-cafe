@@ -1,5 +1,5 @@
-import { menuProducts } from '../data/menu'
-import type { MenuCategoryFilter, MenuProduct } from '../types/menu'
+import { menuProducts } from '../data/menu.js'
+import type { MenuCategoryFilter, MenuProduct } from '../types/menu.js'
 
 export interface MenuQuery {
   category?: MenuCategoryFilter

@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import type { CalculatedCart, CalculatedLineItem } from '../types'
-import { resolveProductFromQuery } from './helpers'
+import type { CalculatedCart, CalculatedLineItem } from '../types.js'
+import { resolveProductFromQuery } from './helpers.js'
 
 export const calculateCartSchema = z.object({
   items: z

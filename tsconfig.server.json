@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "skipLibCheck": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true
+  },
+  "include": [
+    "api/**/*.ts",
+    "src/agent/langchain/**/*.ts",
+    "src/agent/prompts/**/*.ts",
+    "src/agent/tools/**/*.ts",
+    "src/agent/types.ts",
+    "src/services/menuService.ts",
+    "src/services/promoService.ts",
+    "src/services/businessService.ts",
+    "src/data/menu.ts",
+    "src/data/business.ts",
+    "src/types/menu.ts",
+    "src/types/business.ts"
+  ]
+}
