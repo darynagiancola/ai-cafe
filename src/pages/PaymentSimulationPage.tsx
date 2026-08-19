@@ -222,24 +222,26 @@ export function PaymentSimulationPage() {
             </p>
           )}
 
-          <div className="mt-5 space-y-3">
-            <button
-              type="button"
-              disabled={!canProcessPayment || processing}
-              onClick={() => void handleSimulate('Approved')}
-              className="focus-ring w-full rounded-full bg-[#2a2320] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#191413] disabled:opacity-60"
-            >
-              {processing ? 'Processing…' : 'Simulate APPROVED payment'}
-            </button>
-            <button
-              type="button"
-              disabled={!canProcessPayment || processing}
-              onClick={() => void handleSimulate('Declined')}
-              className="focus-ring w-full rounded-full border border-[#d8c8bc] bg-[#fff9f2] px-4 py-2.5 text-sm font-semibold text-[#2a2320] transition hover:bg-[#f5ebde] disabled:opacity-60"
-            >
-              Simulate DECLINED payment
-            </button>
-          </div>
+          {canProcessPayment && (
+            <div className="mt-5 space-y-3">
+              <button
+                type="button"
+                disabled={processing}
+                onClick={() => void handleSimulate('Approved')}
+                className="focus-ring w-full rounded-full bg-[#2a2320] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#191413] disabled:opacity-60"
+              >
+                {processing ? 'Processing…' : 'Simulate APPROVED payment'}
+              </button>
+              <button
+                type="button"
+                disabled={processing}
+                onClick={() => void handleSimulate('Declined')}
+                className="focus-ring w-full rounded-full border border-[#d8c8bc] bg-[#fff9f2] px-4 py-2.5 text-sm font-semibold text-[#2a2320] transition hover:bg-[#f5ebde] disabled:opacity-60"
+              >
+                Simulate DECLINED payment
+              </button>
+            </div>
+          )}
 
           {order.paymentStatus === 'declined' && (
             <div className="mt-5 rounded-xl border border-[#e7d8cc] bg-[#fff9f3] px-4 py-3 text-xs text-[#5f534b]">
