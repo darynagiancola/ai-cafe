@@ -9,6 +9,7 @@
     "check:server": "tsc -p tsconfig.server.json",
     "check:openai-schemas": "npx tsx scripts/checkOpenAiSchemas.ts",
     "smoke:server-agent": "npx tsx scripts/smokeServerAgent.ts",
+    "test:uah-guard": "npx tsx scripts/testUahMessageGuard.ts",
     "lint": "oxlint",
     "preview": "vite preview"
   },

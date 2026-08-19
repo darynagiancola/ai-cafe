@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { DEFAULT_SUGGESTED_PROMPTS } from '../prompts/aiBaristaPrompt.js'
 import type { AgentMessagePayload, AgentProposedOrder, MenuItemSummary } from '../types.js'
 import { calculateCart, getProductDetails, validatePromoCode } from '../tools/index.js'
+import { formatUAH } from '../../utils/currency.js'
 
 export const llmOutputSchema = z.object({
   message: z.string().min(1),
@@ -47,6 +48,8 @@ export interface RunOpenAiBaristaTurnParams {
   model: string
   openAiApiKey: string
 }
+
+const FORBIDDEN_CURRENCY_PATTERN = /\$|usd|dollars?|cents?|eur|€/i
 
 function buildSessionStateSummary(state: BaristaSessionState): string {
   if (state.proposedItems.length === 0) {
@@ -130,6 +133,72 @@ function isRestrictedPaidStatusRequest(input: string): boolean {
   )
 }
 
+function formatOrderItemsForMessage(items: AgentProposedOrder['items']): string {
+  return items.map((item) => `${item.productName} × ${item.quantity}`).join(', ')
+}
+
+function buildDeterministicOrderMessage(
+  order: AgentProposedOrder,
+  askToAddToCart: boolean,
+): string {
+  const lines: string[] = [
+    `Great choice. I’ve prepared ${formatOrderItemsForMessage(order.items)} for you.`,
+  ]
+
+  if (order.promoCode && order.discount > 0) {
+    lines.push(
+      `Subtotal: ${formatUAH(order.subtotal)}. Discount (${order.promoCode}): −${formatUAH(order.discount)}.`,
+    )
+  }
+
+  lines.push(`Total: ${formatUAH(order.total)}.`)
+
+  if (askToAddToCart) {
+    lines.push('Would you like me to add this to your cart?')
+  }
+
+  return lines.join('\n')
+}
+
+function buildDeterministicRecommendationMessage(
+  recommendations: MenuItemSummary[],
+): string {
+  const top = recommendations.slice(0, 4)
+  if (top.length === 0) {
+    return 'All menu prices are listed in Ukrainian hryvnia (₴).'
+  }
+
+  return `Here are recommendations in ₴: ${top
+    .map((item) => `${item.name} — ${formatUAH(item.price)}`)
+    .join(', ')}.`
+}
+
+export function enforceUahMessage({
+  rawMessage,
+  proposedOrder,
+  recommendations,
+  askToAddToCart,
+}: {
+  rawMessage: string
+  proposedOrder: AgentProposedOrder | null
+  recommendations: MenuItemSummary[]
+  askToAddToCart: boolean
+}): string {
+  if (proposedOrder) {
+    return buildDeterministicOrderMessage(proposedOrder, askToAddToCart)
+  }
+
+  if (!FORBIDDEN_CURRENCY_PATTERN.test(rawMessage)) {
+    return rawMessage
+  }
+
+  if (recommendations.length > 0) {
+    return buildDeterministicRecommendationMessage(recommendations)
+  }
+
+  return 'All menu prices are listed in Ukrainian hryvnia (₴). Tell me what you want, and I will provide exact UAH totals from authoritative tools.'
+}
+
 export async function runOpenAiBaristaTurn({
   message,
   conversation,
@@ -166,6 +235,9 @@ When a field is not relevant, use safe empty values:
 - arrays: []
 - booleans: false
 - promoCode: ""
+Never use $, USD, dollars, cents, EUR, or €.
+All menu prices are in Ukrainian hryvnia (UAH). Numeric values are whole hryvnias, never cents.
+Never divide prices by 100 and never convert currencies.
 If user modifies an in-progress order ("also add", "make that two", "remove item", "total now"), return the FULL updated proposedItems list.
 If request is ambiguous, ask one concise clarification question in "message".
 Never claim payment is successful.`,
@@ -290,7 +362,12 @@ Never claim payment is successful.`,
     }
   }
 
-  const safeMessage = promoInvalidMessage ?? parsedOutput.message
+  const safeMessage = enforceUahMessage({
+    rawMessage: promoInvalidMessage ?? parsedOutput.message,
+    proposedOrder,
+    recommendations,
+    askToAddToCart: parsedOutput.askToAddToCart,
+  })
 
   return {
     mode: 'llm',
