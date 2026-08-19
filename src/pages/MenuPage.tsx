@@ -34,13 +34,13 @@ export function MenuPage() {
 
       <div className="mt-8">
         {products.length > 0 ? (
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} onAddToCart={addToCart} />
             ))}
           </div>
         ) : (
-          <div className="card-surface p-10 text-center">
+          <div className="card-surface bg-[#fffaf4] p-10 text-center">
             <h3 className="text-xl font-semibold text-[#2a2320]">No products found</h3>
             <p className="mt-2 text-[#6f635b]">Try another search term or switch category filters.</p>
           </div>
