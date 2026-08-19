@@ -36,6 +36,30 @@ const QUANTITY_WORDS: Record<string, number> = {
   six: 6,
 }
 
+const ORDER_INTENT_PATTERNS = [
+  /\badd\b/,
+  /\border\b/,
+  /\bi want\b/,
+  /\bi'd like\b/,
+  /\bi would like\b/,
+  /\bi'll take\b/,
+  /\bi will take\b/,
+  /\bgive me\b/,
+  /\bcan i have\b/,
+  /\bcan i get\b/,
+]
+
+const DISCOUNT_INTENT_PATTERNS = [
+  /\bdiscount\b/,
+  /\bdiscounts\b/,
+  /\bpromo\b/,
+  /\bpromotion\b/,
+  /\bpromo code\b/,
+  /\bapply\b/,
+  /\boff\b/,
+  /%/,
+]
+
 function createInitialMemoryState(): SessionMemoryState {
   return {
     discussedProductIds: [],
@@ -60,12 +84,16 @@ function parseBudget(input: string): number | null {
 }
 
 function parsePromoCode(input: string): string | null {
-  const match = input.match(/\b[a-zA-Z]{4,}\d{0,3}\b/)
-  if (!match) {
-    return null
+  const tokenMatches = input.match(/\b[a-zA-Z][a-zA-Z0-9]{3,}\b/g) ?? []
+  for (const token of tokenMatches) {
+    const hasDigit = /\d/.test(token)
+    const isLikelyCodeStyle = token === token.toUpperCase() && token.length >= 4
+    if (hasDigit || isLikelyCodeStyle) {
+      return token.toUpperCase()
+    }
   }
 
-  return match[0].toUpperCase()
+  return null
 }
 
 function getMentionedProductQuery(input: string): string | null {
@@ -112,6 +140,25 @@ function parseOrderItemsFromText(input: string): { product: string; quantity: nu
   const cleanInput = normalizeText(input)
   const splitParts = cleanInput.split(/,| and |\+| та /i).map((part) => part.trim())
   const items: { product: string; quantity: number }[] = []
+  const products = menuService.getAllProducts()
+
+  const singularizeWord = (word: string) => {
+    if (word.endsWith('ies')) {
+      return `${word.slice(0, -3)}y`
+    }
+
+    return word.endsWith('s') ? word.slice(0, -1) : word
+  }
+
+  const normalizeForMatching = (value: string): string => {
+    return value
+      .toLowerCase()
+      .replace(/[^a-zа-я0-9\s]/gi, ' ')
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((token) => singularizeWord(token))
+      .join(' ')
+  }
 
   for (const part of splitParts) {
     if (!part) {
@@ -124,9 +171,11 @@ function parseOrderItemsFromText(input: string): { product: string; quantity: nu
       .replace(/^i want\s+/i, '')
       .replace(/^can i get\s+/i, '')
       .replace(/^add\s+/i, '')
+      .replace(/\bto my order\b/i, '')
+      .replace(/\bplease\b/i, '')
       .trim()
 
-    const quantityMatch = normalizedPart.match(/^(\d+|a|an|one|two|three|four|five|six)\b/)
+    const quantityMatch = normalizedPart.match(/\b(\d+|a|an|one|two|three|four|five|six)\b/)
     const quantityRaw = quantityMatch?.[1] ?? '1'
     const quantity = Number.isFinite(Number(quantityRaw))
       ? Number(quantityRaw)
@@ -141,7 +190,18 @@ function parseOrderItemsFromText(input: string): { product: string; quantity: nu
       continue
     }
 
-    const resolved = resolveProductFromQuery(query)
+    const directResolved = resolveProductFromQuery(query)
+    const normalizedQuery = normalizeForMatching(query)
+    const fuzzyResolved = products
+      .map((product) => ({
+        product,
+        key: normalizeForMatching(product.name),
+      }))
+      .sort((a, b) => b.key.length - a.key.length)
+      .find(({ key }) => normalizedQuery.includes(key) || key.includes(normalizedQuery))
+      ?.product
+
+    const resolved = directResolved ?? fuzzyResolved
     if (!resolved) {
       continue
     }
@@ -153,6 +213,28 @@ function parseOrderItemsFromText(input: string): { product: string; quantity: nu
   }
 
   return items
+}
+
+function hasOrderIntent(input: string): boolean {
+  return ORDER_INTENT_PATTERNS.some((pattern) => pattern.test(input))
+}
+
+function hasDiscountIntent(input: string): boolean {
+  return DISCOUNT_INTENT_PATTERNS.some((pattern) => pattern.test(input))
+}
+
+function parseRequestedDiscountPercent(input: string): number | null {
+  const percentMatch =
+    input.match(/(\d{1,2})\s*%/) ??
+    input.match(/(\d{1,2})\s*percent\b/) ??
+    input.match(/(\d{1,2})\s*off\b/)
+
+  if (!percentMatch) {
+    return null
+  }
+
+  const value = Number.parseInt(percentMatch[1], 10)
+  return Number.isFinite(value) ? value : null
 }
 
 function formatOrderSummary(proposal: AgentProposedOrder): string {
@@ -265,17 +347,6 @@ export class AureliaAiBaristaAgent {
     }
 
     if (
-      normalizedInput.includes('50% discount') ||
-      normalizedInput.includes('half price') ||
-      normalizedInput.includes('give me discount')
-    ) {
-      return {
-        message:
-          'I cannot invent discounts. I can only apply valid promo codes such as WELCOME10 through the official promo rules.',
-      }
-    }
-
-    if (
       normalizedInput.includes('sweet') &&
       (normalizedInput.includes('not too heavy') || normalizedInput.includes('light'))
     ) {
@@ -285,14 +356,83 @@ export class AureliaAiBaristaAgent {
       }
     }
 
+    const requestedPercent = parseRequestedDiscountPercent(normalizedInput)
+    const promoCodeCandidate = parsePromoCode(trimmedInput)
+    const hasPromoApplyIntent =
+      /\b(apply|use)\b/.test(normalizedInput) && Boolean(promoCodeCandidate)
+
+    if (hasDiscountIntent(normalizedInput) || hasPromoApplyIntent) {
+      if (normalizedInput.includes('half price') || requestedPercent !== null) {
+        return {
+          message:
+            'I cannot invent discounts. I can only apply valid promo codes such as WELCOME10 through the official promo rules.',
+        }
+      }
+
+      if (
+        !promoCodeCandidate &&
+        (normalizedInput.includes('i have a promo code') ||
+          normalizedInput.includes('i have promo code'))
+      ) {
+        return {
+          message:
+            'Great — share the promo code and I will validate it using official promo rules.',
+        }
+      }
+
+      if (!promoCodeCandidate) {
+        const welcome = validatePromoCode({ promoCode: 'WELCOME10' })
+        if (welcome.isValid) {
+          return {
+            message:
+              'Discounts are available only through valid promo rules. You can use WELCOME10 for the current demo offer.',
+          }
+        }
+
+        return {
+          message:
+            'Discounts are available only through valid promo codes. Share a promo code and I will validate it for you.',
+        }
+      }
+
+      const cartItemsForPromo =
+        this.memory.proposedOrder?.items ??
+        this.memory.selectedItems
+
+      const promo = validatePromoCode({
+        promoCode: promoCodeCandidate,
+        items: cartItemsForPromo.map((item) => ({
+          product: item.productId,
+          quantity: item.quantity,
+        })),
+      })
+
+      if (!promo.isValid) {
+        return {
+          message:
+            `${promo.message} I can only apply valid promo codes from the official promo rules.`,
+        }
+      }
+
+      this.memory.promoCode = promo.code
+
+      if (this.memory.proposedOrder) {
+        this.memory.proposedOrder = {
+          ...this.memory.proposedOrder,
+          promoCode: promo.code,
+          discount: promo.discountAmount,
+          total: promo.updatedTotal + this.memory.proposedOrder.deliveryFee,
+        }
+      }
+
+      return {
+        message: `${promo.code} is valid. Discount: ₴${promo.discountAmount}. Updated total: ₴${promo.updatedTotal}.`,
+      }
+    }
+
     const orderItems = parseOrderItemsFromText(trimmedInput)
     const isOrderBuildRequest =
-      orderItems.length > 0 &&
-      (normalizedInput.includes('give me') ||
-        normalizedInput.includes('can i get') ||
-        normalizedInput.includes('i want') ||
-        normalizedInput.includes('order') ||
-        normalizedInput.includes('add '))
+      orderItems.length > 0 && hasOrderIntent(normalizedInput)
 
     if (isOrderBuildRequest) {
       const cart = calculateCart({ items: orderItems })
@@ -312,13 +452,32 @@ export class AureliaAiBaristaAgent {
         payload: {
           proposedOrder: proposal,
           confirmAddToCart: {
-            label: `Add ${proposal.items.length} item${proposal.items.length > 1 ? 's' : ''} to cart`,
+            label: `Add ${proposal.items.reduce((sum, item) => sum + item.quantity, 0)} item${proposal.items.reduce((sum, item) => sum + item.quantity, 0) > 1 ? 's' : ''} to cart`,
             items: proposal.items.map((item) => ({
               productId: item.productId,
               quantity: item.quantity,
             })),
           },
         },
+      }
+    }
+
+    if (hasOrderIntent(normalizedInput) && orderItems.length === 0) {
+      if (
+        normalizedInput.includes('something') ||
+        normalizedInput.includes('drink') ||
+        normalizedInput.includes('dessert') ||
+        normalizedInput.includes('food')
+      ) {
+        return {
+          message:
+            'Happy to help. Which exact item would you like to order from the menu?',
+        }
+      }
+
+      return {
+        message:
+          'I could not find that product in the menu. Please share the exact item name and I will prepare it for your cart.',
       }
     }
 
@@ -450,47 +609,6 @@ export class AureliaAiBaristaAgent {
           .map((item) => `${item.name} (₴${item.price})`)
           .join(', ')}.`,
         payload: { recommendations: matches.slice(0, 4) },
-      }
-    }
-
-    if (normalizedInput.includes('use ') || normalizedInput.includes('promo') || normalizedInput.includes('code')) {
-      const code = parsePromoCode(trimmedInput)
-      if (!code) {
-        return { message: 'Share the promo code and I will validate it.' }
-      }
-
-      const cartItemsForPromo =
-        this.memory.proposedOrder?.items ??
-        this.memory.selectedItems
-
-      const promo = validatePromoCode({
-        promoCode: code,
-        items: cartItemsForPromo.map((item) => ({
-          product: item.productId,
-          quantity: item.quantity,
-        })),
-      })
-
-      if (!promo.isValid) {
-        return {
-          message:
-            `${promo.message} I can only apply valid promo codes from the official promo rules.`,
-        }
-      }
-
-      this.memory.promoCode = promo.code
-
-      if (this.memory.proposedOrder) {
-        this.memory.proposedOrder = {
-          ...this.memory.proposedOrder,
-          promoCode: promo.code,
-          discount: promo.discountAmount,
-          total: promo.updatedTotal + this.memory.proposedOrder.deliveryFee,
-        }
-      }
-
-      return {
-        message: `${promo.code} is valid. Discount: ₴${promo.discountAmount}. Updated total: ₴${promo.updatedTotal}.`,
       }
     }
 
