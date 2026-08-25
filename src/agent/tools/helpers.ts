@@ -33,7 +33,8 @@ function singularize(value: string): string {
 }
 
 export function resolveProductFromQuery(query: string): MenuProduct | undefined {
-  const normalizedQuery = singularize(normalizeText(query))
+  const normalizedQuery = normalizeText(query)
+  const singularQuery = singularize(normalizedQuery)
   const products = menuService.getAllProducts()
 
   return products.find((product) => {
@@ -41,18 +42,32 @@ export function resolveProductFromQuery(query: string): MenuProduct | undefined 
     const normalizedSlug = normalizeText(product.slug.replaceAll('-', ' '))
 
     if (
+      // Preserve exact product-id matching for authoritative cart/payment item IDs.
+      product.id === normalizedQuery ||
       normalizedName === normalizedQuery ||
+      normalizedName === singularQuery ||
       normalizedSlug === normalizedQuery ||
-      product.id === normalizedQuery
+      normalizedSlug === singularQuery
     ) {
       return true
     }
 
-    if (normalizedName.includes(normalizedQuery) || normalizedSlug.includes(normalizedQuery)) {
+    if (
+      normalizedName.includes(normalizedQuery) ||
+      normalizedName.includes(singularQuery) ||
+      normalizedSlug.includes(normalizedQuery) ||
+      normalizedSlug.includes(singularQuery)
+    ) {
       return true
     }
 
     const keyTokens = normalizedName.split(' ').filter((token) => token.length > 4)
-    return keyTokens.some((token) => token === normalizedQuery || token.includes(normalizedQuery))
+    return keyTokens.some(
+      (token) =>
+        token === normalizedQuery ||
+        token === singularQuery ||
+        token.includes(normalizedQuery) ||
+        token.includes(singularQuery),
+    )
   })
 }
